@@ -4,64 +4,75 @@ services:
     runtime: node
     plan: free
     branch: main
-    buildCommand: npm run build
+
+    # Build
+    buildCommand: npm install --omit=dev
+
+    # Start
     startCommand: npm start
+
     healthCheckPath: /health
     autoDeploy: true
 
     envVars:
+      # Environment
       - key: NODE_ENV
         value: production
 
-      # JWT — auto-generated on first deploy, stable across redeploys
+      # JWT Secrets
       - key: JWT_SECRET
         generateValue: true
+
       - key: JWT_EXPIRES_IN
         value: 15m
+
       - key: REFRESH_TOKEN_SECRET
         generateValue: true
+
       - key: REFRESH_TOKEN_EXPIRES_IN
         value: 7d
 
-      # Self-reference for CORS origin
+      # Frontend URL (replace with actual frontend URL)
       - key: CLIENT_URL
-        fromService:
-          type: web
-          name: ptms
-          property: url
+        value: https://your-frontend.vercel.app
 
-      # MySQL — Railway database
-      # In Render dashboard → ptms → Environment, paste values from:
-      # Railway → your project → MySQL service → Variables tab
-      #
-      #   DB_HOST     ← Railway: MYSQLHOST
-      #   DB_PORT     ← Railway: MYSQLPORT
-      #   DB_USER     ← Railway: MYSQLUSER
-      #   DB_PASSWORD ← Railway: MYSQLPASSWORD
-      #   DB_NAME     ← Railway: MYSQLDATABASE
+      # Railway MySQL
+      # Fill manually in Render Dashboard → Environment
       - key: DB_HOST
         sync: false
+
       - key: DB_PORT
-        sync: false
+        value: "3306"
+
       - key: DB_USER
         sync: false
+
       - key: DB_PASSWORD
         sync: false
+
       - key: DB_NAME
         sync: false
 
-      # File uploads
+      # Optional SSL flag
+      - key: DB_SSL
+        value: "true"
+
+      # Uploads
       - key: UPLOAD_PATH
         value: ./uploads
+
       - key: MAX_FILE_SIZE_MB
         value: "50"
 
-      # Email — optional, fill in if you want email notifications
+      # Email
       - key: SMTP_HOST
         sync: false
+
       - key: SMTP_PORT
         value: "587"
+
       - key: SMTP_USER
         sync: false
+
       - key: SMTP_PASS
         sync: false
