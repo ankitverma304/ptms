@@ -11,7 +11,7 @@ PORT=5000
 # MYSQLUSER              →  DB_USER
 # MYSQLPASSWORD          →  DB_PASSWORD
 # MYSQLDATABASE          →  DB_NAME
-DB_HOST=localhost
+DB_HOST=mysql.railway.internal
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=
