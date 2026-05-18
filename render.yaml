@@ -1,63 +1,38 @@
-services:
-  - type: web
-    name: ptms
-    runtime: node
-    plan: free
-    branch: main
-    buildCommand: npm run build
-    startCommand: npm start
-    healthCheckPath: /health
-    autoDeploy: true
+# ── Server ──────────────────────────────────────
+NODE_ENV=development
+PORT=5000
 
-    envVars:
-      - key: NODE_ENV
-        value: production
+# ── MySQL (Railway) ──────────────────────────────
+# Copy these values from Railway dashboard:
+# Project → MySQL service → Variables tab
+# Railway variable name  →  used here as
+# MYSQLHOST              →  DB_HOST
+# MYSQLPORT              →  DB_PORT
+# MYSQLUSER              →  DB_USER
+# MYSQLPASSWORD          →  DB_PASSWORD
+# MYSQLDATABASE          →  DB_NAME
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=ptms_db
 
-      - key: JWT_SECRET
-        generateValue: true
+# ── JWT ──────────────────────────────────────────
+JWT_SECRET=ptms_jwt_secret_64chars_abcdefghijklmnopqrstuvwxyz1234567890xyzab
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_SECRET=ptms_refresh_secret_64chars_abcdefghijklmnopqrstuvwxyz1234567890xy
+REFRESH_TOKEN_EXPIRES_IN=7d
 
-      - key: JWT_EXPIRES_IN
-        value: 15m
+# ── File Uploads ─────────────────────────────────
+UPLOAD_PATH=./uploads
+MAX_FILE_SIZE_MB=50
 
-      - key: REFRESH_TOKEN_SECRET
-        generateValue: true
+# ── Email (Nodemailer) ───────────────────────────
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=noreply@yourcompany.com
+SMTP_PASS=your_app_password
+EMAIL_FROM="PTMS System <noreply@yourcompany.com>"
 
-      - key: REFRESH_TOKEN_EXPIRES_IN
-        value: 7d
-
-      # FIXED HERE
-      - key: CLIENT_URL
-        value: https://ptms.onrender.com
-
-      - key: DB_HOST
-        sync: false
-
-      - key: DB_PORT
-        value: "3306"
-
-      - key: DB_USER
-        sync: false
-
-      - key: DB_PASSWORD
-        sync: false
-
-      - key: DB_NAME
-        sync: false
-
-      - key: UPLOAD_PATH
-        value: ./uploads
-
-      - key: MAX_FILE_SIZE_MB
-        value: "50"
-
-      - key: SMTP_HOST
-        sync: false
-
-      - key: SMTP_PORT
-        value: "587"
-
-      - key: SMTP_USER
-        sync: false
-
-      - key: SMTP_PASS
-        sync: false
+# ── Frontend URL (CORS) ──────────────────────────
+CLIENT_URL=http://localhost:3000
