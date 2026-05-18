@@ -18,7 +18,7 @@ const list = async (req, res, next) => {
     const wc = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const [rows] = await db.query(`
       SELECT DISTINCT p.id, p.name, p.code, p.type, p.priority, p.status,
-             p.start_date, p.end_date, p.expected_days, p.client_name,
+             p.start_date, p.end_date, p.expected_days, p.client_name, p.updated_at,
              u.name AS pm_name,
              (SELECT COUNT(*) FROM tickets t WHERE t.project_id = p.id) AS ticket_count,
              (SELECT COUNT(*) FROM tickets t WHERE t.project_id = p.id AND t.status NOT IN ('resolved','closed')) AS open_count

@@ -7,7 +7,8 @@ module.exports = (io) => {
     if (!token) return next(new Error('Authentication required'));
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.userId = decoded.userId;
+      socket.userId = decoded.id || decoded.userId;
+      if (!socket.userId) return next(new Error('Invalid token'));
       next();
     } catch {
       next(new Error('Invalid token'));

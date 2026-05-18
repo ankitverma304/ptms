@@ -13,7 +13,8 @@ const list = async (req, res, next) => {
       JOIN users u ON u.id = c.user_id
       LEFT JOIN comment_attachments ca ON ca.comment_id = c.id
       WHERE c.ticket_id=? AND c.deleted_at IS NULL
-      GROUP BY c.id ORDER BY c.created_at ASC
+      GROUP BY c.id, c.body, c.is_edited, c.created_at, c.updated_at, u.id, u.name, u.avatar_url
+      ORDER BY c.created_at ASC
     `, [req.params.ticketId]);
     res.json({ success:true, data:rows });
   } catch (err) { next(err); }

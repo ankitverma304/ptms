@@ -26,7 +26,7 @@ const userPerformance = async (req, res, next) => {
       LEFT JOIN ticket_points_log pl ON pl.user_id = u.id
       LEFT JOIN tickets t ON t.id = pl.ticket_id
       WHERE ${wc}
-      GROUP BY u.id
+      GROUP BY u.id, u.name, u.email, u.role, u.avatar_url
       ORDER BY net_score DESC
     `, params);
 
@@ -73,7 +73,7 @@ const bugAnalytics = async (req, res, next) => {
       SELECT u.id, u.name, u.avatar_url, COUNT(*) AS bug_count,
              SUM(t.bug_severity='critical') AS critical_count
       FROM tickets t JOIN users u ON u.id = t.reporter_id
-      WHERE ${wc} GROUP BY u.id ORDER BY bug_count DESC LIMIT 10
+      WHERE ${wc} GROUP BY u.id, u.name, u.avatar_url ORDER BY bug_count DESC LIMIT 10
     `, params);
 
     // Top bug assignees (who has the most bugs against them)
@@ -84,7 +84,7 @@ const bugAnalytics = async (req, res, next) => {
       FROM tickets t
       JOIN users u ON u.id = t.assignee_id
       LEFT JOIN ticket_points_log pl ON pl.ticket_id=t.id AND pl.event_type IN ('bug_minor','bug_major','bug_critical')
-      WHERE ${wc} GROUP BY u.id ORDER BY bug_count DESC LIMIT 10
+      WHERE ${wc} GROUP BY u.id, u.name, u.avatar_url ORDER BY bug_count DESC LIMIT 10
     `, params);
 
     res.json({ success:true, data:{ summary, trend, topReporters, topAssignees } });
@@ -112,7 +112,7 @@ const timeTracking = async (req, res, next) => {
       FROM time_logs tl
       JOIN users u    ON u.id = tl.user_id
       JOIN tickets t  ON t.id = tl.ticket_id
-      WHERE ${wc} GROUP BY u.id ORDER BY total_hours DESC
+      WHERE ${wc} GROUP BY u.id, u.name, u.avatar_url ORDER BY total_hours DESC
     `, params);
 
     // Per project summary
@@ -123,7 +123,7 @@ const timeTracking = async (req, res, next) => {
       FROM time_logs tl
       JOIN tickets t   ON t.id  = tl.ticket_id
       JOIN projects p  ON p.id  = t.project_id
-      WHERE ${wc} GROUP BY p.id ORDER BY logged_hours DESC
+      WHERE ${wc} GROUP BY p.id, p.name, p.code ORDER BY logged_hours DESC
     `, params);
 
     // Daily breakdown (last 30 days)
@@ -161,7 +161,7 @@ const leaderboard = async (req, res, next) => {
       LEFT JOIN ticket_points_log pl ON pl.user_id=u.id ${dateFilter}
       LEFT JOIN tickets t ON t.id=pl.ticket_id ${projectFilter}
       WHERE u.is_active=1
-      GROUP BY u.id ORDER BY net_score DESC
+      GROUP BY u.id, u.name, u.avatar_url, u.role ORDER BY net_score DESC
       LIMIT 50
     `);
 
