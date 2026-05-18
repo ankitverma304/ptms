@@ -124,11 +124,29 @@ const manualAdjust = async (ticket_id, user_id, delta, notes, acting_user_id) =>
 /**
  * Get full points summary for a user.
  */
-const getUserSummary = async (user_id, startDate, endDate) => {
+const normalizeFilters = (startDateOrFilters, endDate) => {
+  if (startDateOrFilters && typeof startDateOrFilters === 'object') {
+    return {
+      startDate: startDateOrFilters.startDate || null,
+      endDate: startDateOrFilters.endDate || null,
+      projectId: startDateOrFilters.projectId || null
+    };
+  }
+
+  return {
+    startDate: startDateOrFilters || null,
+    endDate: endDate || null,
+    projectId: null
+  };
+};
+
+const getUserSummary = async (user_id, startDateOrFilters, endDate) => {
+  const { startDate, endDate: normalizedEndDate, projectId } = normalizeFilters(startDateOrFilters, endDate);
   let where = 'WHERE pl.user_id=?';
   const params = [user_id];
-  if (startDate) { where += ' AND pl.created_at>=?'; params.push(startDate); }
-  if (endDate)   { where += ' AND pl.created_at<=?'; params.push(endDate); }
+  if (startDate)         { where += ' AND pl.created_at>=?'; params.push(startDate); }
+  if (normalizedEndDate) { where += ' AND pl.created_at<=?'; params.push(normalizedEndDate); }
+  if (projectId)         { where += ' AND t.project_id=?';   params.push(projectId); }
 
   const [rows] = await db.query(`
     SELECT pl.event_type, pl.delta, pl.bug_severity, pl.fix_minutes, pl.created_at,
@@ -153,10 +171,17 @@ const getUserSummary = async (user_id, startDate, endDate) => {
       COUNT(CASE WHEN event_type='bug_minor' THEN 1 END)    AS bugs_minor,
       COUNT(CASE WHEN event_type='bug_major' THEN 1 END)    AS bugs_major,
       COUNT(CASE WHEN event_type='bug_critical' THEN 1 END) AS bugs_critical
-    FROM ticket_points_log pl ${where}
+    FROM ticket_points_log pl
+    JOIN tickets t ON t.id = pl.ticket_id
+    ${where}
   `, params);
 
   return { summary, events: rows };
+};
+
+const getUserScoreSummary = async (user_id, filters) => {
+  const { summary } = await getUserSummary(user_id, filters);
+  return summary;
 };
 
 module.exports = {
@@ -165,5 +190,6 @@ module.exports = {
   classifySeverity,
   updateBugSeverityFromTime,
   manualAdjust,
-  getUserSummary
+  getUserSummary,
+  getUserScoreSummary
 };
