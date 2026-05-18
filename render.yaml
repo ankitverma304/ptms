@@ -38,19 +38,19 @@ services:
 
       # Railway MySQL
       # Fill manually in Render Dashboard → Environment
-      - key: DB_HOST
+      - key: MYSQLHOST
         sync: false
 
-      - key: DB_PORT
+      - key: MYSQLPORT
         value: "3306"
 
-      - key: DB_USER
+      - key: MYSQLUSER
         sync: false
 
-      - key: DB_PASSWORD
+      - key: MYSQLPASSWORD
         sync: false
 
-      - key: DB_NAME
+      - key: MYSQL_DATABASE
         sync: false
 
       # Optional SSL flag
