@@ -10,10 +10,15 @@ const authenticate = async (req, res, next) => {
     }
     const token   = header.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId  = decoded.id || decoded.userId;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
 
     const [rows] = await db.query(
       'SELECT id, name, email, role, total_points, is_active FROM users WHERE id = ?',
-      [decoded.userId]
+      [userId]
     );
     if (!rows.length || !rows[0].is_active) {
       return res.status(401).json({ success: false, message: 'User not found or inactive' });
