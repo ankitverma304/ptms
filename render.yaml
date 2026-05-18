@@ -1,0 +1,60 @@
+services:
+  - type: web
+    name: ptms
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # JWT — auto-generated on first deploy, stable across redeploys
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_EXPIRES_IN
+        value: 7d
+
+      # Self-reference for CORS origin
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: ptms
+          property: url
+
+      # MySQL — external database (Railway / Aiven / etc.)
+      # Fill these in the Render dashboard after connecting your MySQL provider
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+
+      # File uploads
+      - key: UPLOAD_PATH
+        value: ./uploads
+      - key: MAX_FILE_SIZE_MB
+        value: "50"
+
+      # Email — optional, fill in if you want email notifications
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
