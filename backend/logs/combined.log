@@ -1,0 +1,21 @@
+2026-05-18 12:21:32 [error] POST /api/v1/auth/login — Invalid credentials
+Error: Invalid credentials
+    at appError (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/errorHandler.js:5:15)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/authController.js:24:39
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-18 12:26:23 [error] POST /api/v1/auth/login — Invalid credentials
+Error: Invalid credentials
+    at appError (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/errorHandler.js:5:15)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/authController.js:25:66
+2026-05-18 12:26:23 [error] POST /api/v1/auth/refresh — Refresh token required
+Error: Refresh token required
+    at appError (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/errorHandler.js:5:15)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/authController.js:36:28
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/errorHandler.js:12:19
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:284:15
+    at router.process_params (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:346:12)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:280:10)
