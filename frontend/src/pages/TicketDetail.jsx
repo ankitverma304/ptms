@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { ticketAPI, commentAPI, timeLogAPI, projectAPI } from '../utils/api';
+import { ticketAPI, commentAPI, timeLogAPI, userAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -38,11 +38,11 @@ export default function TicketDetail() {
     () => commentAPI.list(id).then(r => r.data.data)
   );
 
-  // Load project members for the assignee dropdown
-  const { data: projectData } = useQuery(
-    ['project', ticket?.project_id],
-    () => projectAPI.get(ticket.project_id).then(r => r.data.data),
-    { enabled: !!ticket?.project_id }
+  // Load all active users for the assignee dropdown (available to every authenticated user)
+  const { data: allUsers = [] } = useQuery(
+    ['users-active'],
+    () => userAPI.list({ is_active: 1 }).then(r => r.data.data),
+    { staleTime: 5 * 60 * 1000 }
   );
 
   const canManage = (ROLE_RANK[user?.role] || 0) >= ROLE_RANK['team_lead'];
@@ -95,7 +95,6 @@ export default function TicketDetail() {
   if (!ticket) return <div className="p-4 sm:p-6 text-slate-400 text-sm">Ticket not found</div>;
 
   const nextStatuses = TRANSITIONS[ticket.status] || [];
-  const members = projectData?.members || [];
 
   return (
     <div className="p-3 sm:p-4 lg:p-6 max-w-4xl mx-auto">
@@ -141,7 +140,7 @@ export default function TicketDetail() {
                   disabled={assignMut.isLoading}
                   className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Unassigned</option>
-                  {members.map(m => (
+                  {allUsers.map(m => (
                     <option key={m.id} value={m.id}>{m.name} ({m.role?.replace(/_/g, ' ')})</option>
                   ))}
                 </select>

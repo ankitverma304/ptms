@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { projectAPI, ticketAPI } from '../utils/api';
+import { projectAPI, ticketAPI, userAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -24,6 +24,12 @@ export default function ProjectDetail() {
   const { data: tickets } = useQuery(
     ['tickets', id],
     () => ticketAPI.list(id).then(r => r.data.data)
+  );
+
+  const { data: allUsers = [] } = useQuery(
+    ['users-active'],
+    () => userAPI.list({ is_active: 1 }).then(r => r.data.data),
+    { staleTime: 5 * 60 * 1000 }
   );
 
   const createTicket = useMutation(
@@ -119,7 +125,7 @@ export default function ProjectDetail() {
                       <select value={ticketForm.assignee_id} onChange={e => setTicketForm(f => ({ ...f, assignee_id: e.target.value }))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Unassigned</option>
-                        {proj.members?.map(m => (
+                        {allUsers.map(m => (
                           <option key={m.id} value={m.id}>{m.name} ({m.role?.replace(/_/g, ' ')})</option>
                         ))}
                       </select>

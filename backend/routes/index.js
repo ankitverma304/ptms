@@ -40,7 +40,7 @@ router.get ('/auth/me',       authenticate, authC.me);
 // ═══════════════════════════════════════════════════════════════
 // USERS
 // ═══════════════════════════════════════════════════════════════
-router.get   ('/users',                   authenticate, authorizeMin('team_lead'), userC.list);
+router.get   ('/users',                   authenticate, userC.list);
 router.get   ('/users/:id',               authenticate, userC.get);
 router.put   ('/users/:id',               authenticate, userC.update);
 router.post  ('/users/change-password',   authenticate, userC.changePassword);

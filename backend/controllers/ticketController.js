@@ -174,12 +174,13 @@ const update = async (req, res, next) => {
 
     const allowed = ['title','description','priority','assignee_id','start_date','due_date','estimated_hrs','is_bug','bug_severity'];
     const fields  = Object.keys(req.body).filter(k => allowed.includes(k));
+
     if (fields.length) {
       const sets = fields.map(f=>`${f}=?`).join(',');
-      await conn.query(`UPDATE tickets SET ${sets} WHERE id=?`, [...fields.map(f=>req.body[f]),id]);
+      await conn.query(`UPDATE tickets SET ${sets} WHERE id=?`, [...fields.map(f=>req.body[f]), id]);
       for (const f of fields) {
         if (ticket[f] != req.body[f]) {
-          await logHistory(conn, id, req.user.id, 'updated', f, String(ticket[f]), String(req.body[f]));
+          await logHistory(conn, id, req.user.id, 'updated', f, String(ticket[f] ?? ''), String(req.body[f] ?? ''));
         }
       }
     }
@@ -190,6 +191,28 @@ const update = async (req, res, next) => {
     }
 
     await conn.commit();
+
+    // If assignee changed, notify new assignee and ensure they are a watcher
+    const newAssigneeId = req.body.assignee_id !== undefined ? req.body.assignee_id : ticket.assignee_id;
+    if ('assignee_id' in req.body && req.body.assignee_id != ticket.assignee_id) {
+      if (newAssigneeId) {
+        // Add as watcher
+        await db.query(
+          'INSERT IGNORE INTO ticket_watchers (ticket_id, user_id) VALUES (?, ?)',
+          [id, newAssigneeId]
+        );
+        // Notify new assignee
+        await NotifyService.send(req.app.get('io'), {
+          user_id: newAssigneeId,
+          type: 'assigned',
+          title: 'Ticket assigned to you',
+          message: `${ticket.title} (${ticket.ticket_code})`,
+          entity_type: 'ticket',
+          entity_id: +id,
+        });
+      }
+    }
+
     res.json({ success:true, message:'Ticket updated' });
   } catch (err) { await conn.rollback(); next(err); }
   finally { conn.release(); }

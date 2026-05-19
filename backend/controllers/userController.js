@@ -4,10 +4,11 @@ const { asyncHandler, appError } = require('../middleware/errorHandler');
 const pts    = require('../services/pointsService');
 
 exports.list = asyncHandler(async (req, res) => {
-  const { role, search } = req.query;
+  const { role, search, is_active } = req.query;
   let where = '1=1'; const p = [];
-  if (role)   { where += ' AND role = ?'; p.push(role); }
-  if (search) { where += ' AND (name LIKE ? OR email LIKE ?)'; p.push(`%${search}%`, `%${search}%`); }
+  if (role)      { where += ' AND role = ?'; p.push(role); }
+  if (search)    { where += ' AND (name LIKE ? OR email LIKE ?)'; p.push(`%${search}%`, `%${search}%`); }
+  if (is_active !== undefined) { where += ' AND is_active = ?'; p.push(is_active === '1' || is_active === 'true' ? 1 : 0); }
   const [rows] = await db.query(`SELECT id, name, email, role, total_points, is_active, last_login, created_at FROM users WHERE ${where} ORDER BY name`, p);
   res.json({ success: true, data: rows });
 });
