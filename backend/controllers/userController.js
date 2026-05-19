@@ -3,6 +3,22 @@ const bcrypt = require('bcryptjs');
 const { asyncHandler, appError } = require('../middleware/errorHandler');
 const pts    = require('../services/pointsService');
 
+const VALID_ROLES = ['super_admin', 'admin', 'project_manager', 'team_lead', 'developer', 'qa'];
+
+exports.create = asyncHandler(async (req, res) => {
+  const { name, email, password, role = 'developer', is_active = true } = req.body;
+  const [exists] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+  if (exists.length) throw appError('Email already registered', 409);
+  const hash     = await bcrypt.hash(password, 12);
+  const safeRole = VALID_ROLES.includes(role) ? role : 'developer';
+  const [result] = await db.query(
+    'INSERT INTO users (name, email, password_hash, role, is_active) VALUES (?,?,?,?,?)',
+    [name, email, hash, safeRole, is_active ? 1 : 0]
+  );
+  const [user] = await db.query('SELECT id, name, email, role, total_points, is_active, created_at FROM users WHERE id = ?', [result.insertId]);
+  res.status(201).json({ success: true, message: 'User created', data: user[0] });
+});
+
 exports.list = asyncHandler(async (req, res) => {
   const { role, search, is_active } = req.query;
   let where = '1=1'; const p = [];

@@ -115,6 +115,7 @@ export const reportAPI = {
 export const userAPI = {
   list:            (params) => api.get('/users', { params }),
   get:             (id)     => api.get(`/users/${id}`),
+  create:          (data)   => api.post('/users', data),
   update:          (id, d)  => api.put(`/users/${id}`, d),
   notifications:   ()       => api.get('/users/me/notifications'),
   markRead:        (ids)    => api.post('/users/me/notifications/read', { ids }),

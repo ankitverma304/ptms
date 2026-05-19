@@ -41,6 +41,11 @@ router.get ('/auth/me',       authenticate, authC.me);
 // USERS
 // ═══════════════════════════════════════════════════════════════
 router.get   ('/users',                   authenticate, userC.list);
+router.post  ('/users',                   authenticate, authorize('admin'), [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+], validate, userC.create);
 router.get   ('/users/:id',               authenticate, userC.get);
 router.put   ('/users/:id',               authenticate, userC.update);
 router.post  ('/users/change-password',   authenticate, userC.changePassword);
