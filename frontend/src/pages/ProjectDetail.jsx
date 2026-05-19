@@ -14,7 +14,7 @@ export default function ProjectDetail() {
   const qc = useQueryClient();
   const [tab, setTab] = useState('tickets');
   const [showTicketForm, setShowTicketForm] = useState(false);
-  const [ticketForm, setTicketForm] = useState({ title: '', priority: 'medium', due_date: '', estimated_hrs: '' });
+  const [ticketForm, setTicketForm] = useState({ title: '', priority: 'medium', assignee_id: '', due_date: '', estimated_hrs: '' });
 
   const { data: proj, isLoading } = useQuery(
     ['project', id],
@@ -27,12 +27,17 @@ export default function ProjectDetail() {
   );
 
   const createTicket = useMutation(
-    (data) => ticketAPI.create({ ...data, project_id: +id }),
+    (data) => ticketAPI.create({
+      ...data,
+      project_id: +id,
+      assignee_id: data.assignee_id ? +data.assignee_id : undefined,
+      estimated_hrs: data.estimated_hrs ? +data.estimated_hrs : undefined,
+    }),
     {
       onSuccess: () => {
         qc.invalidateQueries(['tickets', id]);
         setShowTicketForm(false);
-        setTicketForm({ title: '', priority: 'medium', due_date: '', estimated_hrs: '' });
+        setTicketForm({ title: '', priority: 'medium', assignee_id: '', due_date: '', estimated_hrs: '' });
         toast.success('Ticket created');
       },
       onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
@@ -107,6 +112,16 @@ export default function ProjectDetail() {
                       <select value={ticketForm.priority} onChange={e => setTicketForm(f => ({ ...f, priority: e.target.value }))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         {['low', 'medium', 'high', 'critical'].map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Assign to</label>
+                      <select value={ticketForm.assignee_id} onChange={e => setTicketForm(f => ({ ...f, assignee_id: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Unassigned</option>
+                        {proj.members?.map(m => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.role?.replace(/_/g, ' ')})</option>
+                        ))}
                       </select>
                     </div>
                     <div>

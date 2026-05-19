@@ -26,6 +26,7 @@ export default function TicketDetail() {
   const [comment, setComment] = useState('');
   const [timeLog, setTimeLog] = useState({ hours: '', work_date: new Date().toISOString().slice(0, 10), note: '' });
   const [editingAssignee, setEditingAssignee] = useState(false);
+  const [selectedAssignee, setSelectedAssignee] = useState('');
 
   const { data: ticket, isLoading } = useQuery(
     ['ticket', id],
@@ -133,25 +134,36 @@ export default function TicketDetail() {
           <div>
             <p className="text-xs text-slate-400 mb-0.5">Assignee</p>
             {canManage && editingAssignee ? (
-              <div className="flex items-center gap-1">
+              <div className="space-y-1.5">
                 <select
-                  defaultValue={ticket.assignee_id || ''}
-                  onChange={e => assignMut.mutate(e.target.value ? +e.target.value : null)}
+                  value={selectedAssignee}
+                  onChange={e => setSelectedAssignee(e.target.value)}
                   disabled={assignMut.isLoading}
-                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0">
+                  className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Unassigned</option>
                   {members.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
+                    <option key={m.id} value={m.id}>{m.name} ({m.role?.replace(/_/g, ' ')})</option>
                   ))}
                 </select>
-                <button onClick={() => setEditingAssignee(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1 flex-shrink-0 text-xs">✕</button>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => assignMut.mutate(selectedAssignee ? +selectedAssignee : null)}
+                    disabled={assignMut.isLoading}
+                    className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-2.5 py-1 rounded-lg transition-colors">
+                    {assignMut.isLoading ? 'Saving…' : 'Save'}
+                  </button>
+                  <button onClick={() => setEditingAssignee(false)}
+                    className="text-xs text-slate-500 hover:text-slate-700 px-2.5 py-1 rounded-lg hover:bg-gray-100 transition-colors">
+                    Cancel
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
                 <p className="font-medium text-slate-800 truncate">{ticket.assignee_name || '—'}</p>
                 {canManage && (
-                  <button onClick={() => setEditingAssignee(true)}
+                  <button
+                    onClick={() => { setSelectedAssignee(ticket.assignee_id ? String(ticket.assignee_id) : ''); setEditingAssignee(true); }}
                     className="text-xs text-blue-500 hover:text-blue-700 flex-shrink-0 leading-none">
                     ✎
                   </button>
