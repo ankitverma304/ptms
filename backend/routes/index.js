@@ -73,6 +73,8 @@ router.post  ('/tickets',             authenticate, [
 
 router.get   ('/tickets/:id',         authenticate, tickC.get);
 router.put   ('/tickets/:id',         authenticate, tickC.update);
+router.patch ('/tickets/:id',         authenticate, tickC.update);
+router.patch ('/tickets/:id/status',  authenticate, tickC.changeStatus);
 router.delete('/tickets/:id',         authenticate, authorizeMin('project_manager'), tickC.remove);
 
 // Bug logging (QA, TL, PM, Admin, Super Admin)
