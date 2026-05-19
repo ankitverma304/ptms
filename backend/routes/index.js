@@ -3,7 +3,7 @@ const router   = express.Router();
 const rateLimit = require('express-rate-limit');
 const { body, param, query } = require('express-validator');
 
-const { authenticate, authorize, authorizeMin, requireProjectMember } = require('../middleware/auth');
+const { authenticate, authorize, authorizeMin, authorizeRoles, requireProjectMember } = require('../middleware/auth');
 
 const authC    = require('../controllers/authController');
 const projC    = require('../controllers/projectController');
@@ -82,8 +82,8 @@ router.patch ('/tickets/:id',         authenticate, tickC.update);
 router.patch ('/tickets/:id/status',  authenticate, tickC.changeStatus);
 router.delete('/tickets/:id',         authenticate, authorizeMin('project_manager'), tickC.remove);
 
-// Bug logging (QA, TL, PM, Admin, Super Admin)
-router.post  ('/tickets/:id/log-bug', authenticate, authorize('qa','team_lead','project_manager','admin','super_admin'), [
+// Bug logging — developer explicitly excluded (qa rank=1 < developer rank=2, so authorize() would let dev through)
+router.post  ('/tickets/:id/log-bug', authenticate, authorizeRoles('qa','team_lead','project_manager','admin','super_admin'), [
   body('fix_minutes').isInt({ min: 1 }),
 ], validate, tickC.logBug);
 
@@ -119,11 +119,15 @@ router.delete('/comments/:id',          authenticate, commC.remove);
 // ═══════════════════════════════════════════════════════════════
 // REPORTS
 // ═══════════════════════════════════════════════════════════════
-router.get('/reports/user-performance', authenticate, authorizeMin('team_lead'), reptC.userPerformance);
-router.get('/reports/bug-analytics',    authenticate, authorizeMin('team_lead'), reptC.bugAnalytics);
+// Reports — open to all authenticated users; each controller filters data by role:
+//   developer/qa   → own data only
+//   team_lead      → team (projects they belong to)
+//   pm+            → all data
+router.get('/reports/user-performance', authenticate, reptC.userPerformance);
+router.get('/reports/bug-analytics',    authenticate, reptC.bugAnalytics);
 router.get('/reports/project-progress', authenticate, reptC.projectProgress);
-router.get('/reports/time-tracking',    authenticate, authorizeMin('team_lead'), reptC.timeTracking);
+router.get('/reports/time-tracking',    authenticate, reptC.timeTracking);
 router.get('/reports/leaderboard',      authenticate, reptC.leaderboard);
-router.get('/reports/overdue',          authenticate, authorizeMin('team_lead'), reptC.overdue);
+router.get('/reports/overdue',          authenticate, reptC.overdue);
 
 module.exports = router;

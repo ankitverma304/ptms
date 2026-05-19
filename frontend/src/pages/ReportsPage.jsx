@@ -2,9 +2,17 @@ import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { reportAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import { format, subDays } from 'date-fns';
 
+const SCOPE_BANNER = {
+  developer: { text: 'Showing your data only',           style: 'bg-blue-50 text-blue-700 border-blue-200' },
+  qa:        { text: 'Showing your data only',           style: 'bg-blue-50 text-blue-700 border-blue-200' },
+  team_lead: { text: 'Showing data for your team projects', style: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+};
+
 export default function ReportsPage() {
+  const { user } = useAuth();
   const [tab, setTab] = useState('performance');
   const defaultEnd   = format(new Date(), 'yyyy-MM-dd');
   const defaultStart = format(subDays(new Date(), 30), 'yyyy-MM-dd');
@@ -44,6 +52,14 @@ export default function ReportsPage() {
             className="text-sm border border-gray-200 rounded-lg px-3 py-2 flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
       </div>
+
+      {/* Scope banner for restricted roles */}
+      {SCOPE_BANNER[user?.role] && (
+        <div className={`mb-4 px-4 py-2.5 rounded-lg border text-sm flex items-center gap-2 ${SCOPE_BANNER[user.role].style}`}>
+          <span>ℹ</span>
+          <span>{SCOPE_BANNER[user.role].text}</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 sm:mb-6 border-b border-gray-100 overflow-x-auto">

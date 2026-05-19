@@ -36,12 +36,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const hasRole = (...roles) => user && roles.includes(user.role);
-  const isAdmin = () => hasRole('super_admin', 'admin');
-  const isPM    = () => hasRole('super_admin', 'admin', 'project_manager');
+  const hasRole    = (...roles) => user && roles.includes(user.role);
+  const isAdmin    = () => hasRole('super_admin', 'admin');
+  const isPM       = () => hasRole('super_admin', 'admin', 'project_manager');
+  // SA / Admin / PM / TL / QA can flag bugs — developer explicitly excluded
+  const canFlagBug = () => hasRole('super_admin', 'admin', 'project_manager', 'team_lead', 'qa');
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasRole, isAdmin, isPM }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasRole, isAdmin, isPM, canFlagBug }}>
       {children}
     </AuthContext.Provider>
   );

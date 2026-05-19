@@ -1,6 +1,27 @@
 const db           = require('../config/db');
 const PointsService = require('../services/pointsService');
 
+const RANK = { super_admin:6, admin:5, project_manager:4, team_lead:3, developer:2, qa:1 };
+
+// Returns the SQL snippet + params needed to restrict results to the caller's scope.
+// scope: 'own' → dev/qa sees only their own data
+//        'team' → team_lead sees all users in their projects
+//        'all'  → pm+ sees everything
+function callerScope(user) {
+  const rank = RANK[user.role] || 0;
+  if (rank < RANK.team_lead) return 'own';
+  if (rank === RANK.team_lead) return 'team';
+  return 'all';
+}
+
+// Subquery: all user_ids who share a project with the caller (for team_lead scope)
+const TEAM_SUBQUERY = `u.id IN (
+  SELECT DISTINCT pm2.user_id FROM project_members pm2
+  WHERE pm2.project_id IN (
+    SELECT pm1.project_id FROM project_members pm1 WHERE pm1.user_id=?
+  )
+)`;
+
 // ── GET /api/reports/user-performance ───────────────────────
 const userPerformance = async (req, res, next) => {
   try {
@@ -10,7 +31,15 @@ const userPerformance = async (req, res, next) => {
     if (start_date)  { where.push('pl.created_at>=?'); params.push(start_date); }
     if (end_date)    { where.push('pl.created_at<=?'); params.push(end_date); }
     if (project_id)  { where.push('t.project_id=?');   params.push(project_id); }
-    if (user_id)     { where.push('pl.user_id=?');     params.push(user_id); }
+
+    const scope = callerScope(req.user);
+    if (scope === 'own') {
+      where.push('u.id=?'); params.push(req.user.id);
+    } else if (scope === 'team') {
+      where.push(TEAM_SUBQUERY); params.push(req.user.id);
+    } else if (user_id) {
+      where.push('u.id=?'); params.push(user_id);
+    }
 
     const wc = where.join(' AND ');
     const [rows] = await db.query(`
@@ -43,6 +72,15 @@ const bugAnalytics = async (req, res, next) => {
     if (start_date) { where.push('t.created_at>=?'); params.push(start_date); }
     if (end_date)   { where.push('t.created_at<=?'); params.push(end_date); }
     if (project_id) { where.push('t.project_id=?');  params.push(project_id); }
+
+    const scope = callerScope(req.user);
+    if (scope === 'own') {
+      where.push('(t.assignee_id=? OR t.reporter_id=?)'); params.push(req.user.id, req.user.id);
+    } else if (scope === 'team') {
+      where.push('t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id=?)');
+      params.push(req.user.id);
+    }
+
     const wc = where.join(' AND ');
 
     // Summary counts
@@ -100,7 +138,17 @@ const timeTracking = async (req, res, next) => {
     if (start_date) { where.push('tl.work_date>=?'); params.push(start_date); }
     if (end_date)   { where.push('tl.work_date<=?'); params.push(end_date); }
     if (project_id) { where.push('t.project_id=?');  params.push(project_id); }
-    if (user_id)    { where.push('tl.user_id=?');    params.push(user_id); }
+
+    const scope = callerScope(req.user);
+    if (scope === 'own') {
+      where.push('tl.user_id=?'); params.push(req.user.id);
+    } else if (scope === 'team') {
+      where.push('t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id=?)');
+      params.push(req.user.id);
+    } else if (user_id) {
+      where.push('tl.user_id=?'); params.push(user_id);
+    }
+
     const wc = where.join(' AND ');
 
     // Per user summary
@@ -199,14 +247,26 @@ const projectProgress = async (req, res, next) => {
 const overdue = async (req, res, next) => {
   try {
     const { project_id } = req.query;
+    let extra = '', params = [];
+
+    if (project_id) { extra += ' AND t.project_id=?'; params.push(project_id); }
+
+    const scope = callerScope(req.user);
+    if (scope === 'own') {
+      extra += ' AND t.assignee_id=?'; params.push(req.user.id);
+    } else if (scope === 'team') {
+      extra += ' AND t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id=?)';
+      params.push(req.user.id);
+    }
+
     const [rows] = await db.query(`
       SELECT t.id, t.ticket_code, t.title, t.due_date, u.name AS assignee_name,
              DATEDIFF(NOW(), t.due_date) AS days_overdue
       FROM tickets t LEFT JOIN users u ON u.id=t.assignee_id
       WHERE t.due_date < NOW() AND t.status NOT IN ('resolved','closed')
-      ${project_id ? 'AND t.project_id = ?' : ''}
+      ${extra}
       ORDER BY days_overdue DESC
-    `, project_id ? [project_id] : []);
+    `, params);
     res.json({ success: true, data: rows });
   } catch (err) { next(err); }
 };

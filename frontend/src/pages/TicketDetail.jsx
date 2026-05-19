@@ -21,12 +21,13 @@ const ROLE_RANK = { super_admin: 6, admin: 5, project_manager: 4, team_lead: 3, 
 
 export default function TicketDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, canFlagBug } = useAuth();
   const qc = useQueryClient();
   const [comment, setComment] = useState('');
   const [timeLog, setTimeLog] = useState({ hours: '', work_date: new Date().toISOString().slice(0, 10), note: '' });
   const [editingAssignee, setEditingAssignee] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState('');
+  const [bugSeverity, setBugSeverity] = useState('minor');
 
   const { data: ticket, isLoading } = useQuery(
     ['ticket', id],
@@ -74,6 +75,15 @@ export default function TicketDetail() {
     (body) => commentAPI.create(id, { body }),
     {
       onSuccess: () => { qc.invalidateQueries(['comments', id]); setComment(''); toast.success('Comment added'); },
+      onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
+    }
+  );
+
+  // ── Flag as bug ──────────────────────────────────────────────
+  const flagBugMut = useMutation(
+    ({ is_bug, bug_severity }) => ticketAPI.update(id, { is_bug, bug_severity }),
+    {
+      onSuccess: () => { qc.invalidateQueries(['ticket', id]); toast.success(ticket?.is_bug ? 'Bug severity updated' : 'Ticket flagged as bug'); },
       onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
     }
   );
@@ -197,6 +207,57 @@ export default function TicketDetail() {
                 {s.replace(/_/g, ' ')}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Flag as bug — SA / Admin / PM / TL / QA only (developer excluded) */}
+        {canFlagBug() && (
+          <div className="mt-4 pt-3 border-t border-gray-50">
+            {ticket.is_bug ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">
+                  Bug · {ticket.bug_severity}
+                </span>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={bugSeverity}
+                    onChange={e => setBugSeverity(e.target.value)}
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="minor">Minor (-1 pt)</option>
+                    <option value="major">Major (-5 pts)</option>
+                    <option value="critical">Critical (-10 pts)</option>
+                  </select>
+                  <button
+                    onClick={() => flagBugMut.mutate({ is_bug: 1, bug_severity: bugSeverity })}
+                    disabled={flagBugMut.isLoading}
+                    className="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Update severity
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs text-slate-400">Flag as bug:</span>
+                <select
+                  value={bugSeverity}
+                  onChange={e => setBugSeverity(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="minor">Minor (-1 pt)</option>
+                  <option value="major">Major (-5 pts)</option>
+                  <option value="critical">Critical (-10 pts)</option>
+                </select>
+                <button
+                  onClick={() => flagBugMut.mutate({ is_bug: 1, bug_severity: bugSeverity })}
+                  disabled={flagBugMut.isLoading}
+                  className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {flagBugMut.isLoading ? 'Flagging…' : 'Flag as Bug'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

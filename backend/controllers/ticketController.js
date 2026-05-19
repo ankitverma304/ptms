@@ -172,6 +172,14 @@ const update = async (req, res, next) => {
     const [[ticket]] = await conn.query('SELECT * FROM tickets WHERE id=?', [id]);
     if (!ticket) return res.status(404).json({ success:false, message:'Ticket not found' });
 
+    // Only SA/Admin/PM/TL/QA may flag a ticket as a bug
+    if (req.body.is_bug) {
+      const BUG_ROLES = ['super_admin','admin','project_manager','team_lead','qa'];
+      if (!BUG_ROLES.includes(req.user.role)) {
+        return res.status(403).json({ success:false, message:'Only QA, Team Lead, PM, or Admin can flag a ticket as a bug' });
+      }
+    }
+
     const allowed = ['title','description','priority','assignee_id','start_date','due_date','estimated_hrs','is_bug','bug_severity'];
     const fields  = Object.keys(req.body).filter(k => allowed.includes(k));
 

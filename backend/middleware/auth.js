@@ -52,6 +52,14 @@ const authorize = (...allowedRoles) => (req, res, next) => {
   return res.status(403).json({ success: false, message: 'Insufficient permissions' });
 };
 
+// Exact role-list check — use when rank order would grant unintended access
+// (e.g. qa=1 < developer=2, but developer must NOT be allowed to flag bugs)
+const authorizeRoles = (...roles) => (req, res, next) => {
+  if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+  if (roles.includes(req.user.role)) return next();
+  return res.status(403).json({ success: false, message: 'Insufficient permissions' });
+};
+
 // Alias helpers
 const isAdmin   = authorize('admin');
 const isPM      = authorize('project_manager');
@@ -81,4 +89,4 @@ const requireProjectMember = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticate, authorize, authorizeMin, requireProjectMember, isAdmin, isPM, isLead, ROLE_RANK };
+module.exports = { authenticate, authorize, authorizeMin, authorizeRoles, requireProjectMember, isAdmin, isPM, isLead, ROLE_RANK };
