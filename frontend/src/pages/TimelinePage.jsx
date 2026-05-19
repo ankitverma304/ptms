@@ -54,8 +54,8 @@ export default function TimelinePage() {
           {/* Score cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
             <StatCard label="Net score" value={`${(score?.net_score ?? 0) >= 0 ? '+' : ''}${score?.net_score ?? 0}`} color={(score?.net_score ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'} />
-            <StatCard label="On time" value={score?.on_time?.count ?? 0} color="text-green-600" />
-            <StatCard label="Overdue" value={score?.overdue?.count ?? 0} color="text-orange-600" />
+            <StatCard label="On time" value={score?.tasks_on_time ?? 0} color="text-green-600" />
+            <StatCard label="Overdue" value={score?.tasks_overdue ?? 0} color="text-orange-600" />
             <StatCard label="Bugs total" value={(bugMap.minor || 0) + (bugMap.major || 0) + (bugMap.critical || 0)} color="text-red-500" />
             <StatCard label="Critical bugs" value={bugMap.critical || 0} color="text-red-700" />
           </div>

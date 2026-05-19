@@ -8,20 +8,13 @@ export default function LeaderboardPage() {
   const [projectId, setProjectId] = useState('');
   const [period, setPeriod]       = useState('all');
 
-  const dateRange = () => {
-    const now = new Date();
-    if (period === 'week')  return { start_date: new Date(now - 7  * 86400000).toISOString().slice(0, 10), end_date: now.toISOString().slice(0, 10) };
-    if (period === 'month') return { start_date: new Date(now - 30 * 86400000).toISOString().slice(0, 10), end_date: now.toISOString().slice(0, 10) };
-    return {};
-  };
-
   const { data, isLoading } = useQuery(
     ['leaderboard', projectId, period],
-    () => reportAPI.leaderboard({ project_id: projectId || undefined, ...dateRange(), limit: 20 }).then(r => r.data.data),
+    () => reportAPI.leaderboard({ project_id: projectId || undefined, period, limit: 20 }).then(r => r.data.data),
     { keepPreviousData: true }
   );
 
-  const maxScore = data ? Math.max(...data.map(u => Math.abs(u.period_score)), 1) : 1;
+  const maxScore = data ? Math.max(...data.map(u => Math.abs(u.net_score)), 1) : 1;
 
   return (
     <div className="p-3 sm:p-4 lg:p-6 max-w-4xl mx-auto">
@@ -63,7 +56,7 @@ export default function LeaderboardPage() {
       {data && (
         <div className="space-y-2 sm:space-y-3">
           {data.map((user, idx) => {
-            const score  = user.period_score;
+            const score  = user.net_score;
             const barPct = Math.round(Math.abs(score) / maxScore * 100);
             const isPos  = score >= 0;
 
@@ -104,23 +97,17 @@ export default function LeaderboardPage() {
                 {/* Stats — hidden on small phones, visible from sm */}
                 <div className="hidden sm:flex gap-3 lg:gap-4 text-xs text-slate-500 flex-shrink-0">
                   <div className="text-center">
-                    <div className="font-medium text-green-600">{user.on_time_count}</div>
+                    <div className="font-medium text-green-600">{user.tasks_on_time}</div>
                     <div>On time</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium text-red-500">{user.overdue_count}</div>
+                    <div className="font-medium text-red-500">{user.tasks_overdue}</div>
                     <div>Overdue</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium text-orange-500">{user.bug_count}</div>
+                    <div className="font-medium text-orange-500">{user.total_bugs}</div>
                     <div>Bugs</div>
                   </div>
-                  {user.critical_bugs > 0 && (
-                    <div className="text-center">
-                      <div className="font-medium text-red-700">{user.critical_bugs}</div>
-                      <div>Critical</div>
-                    </div>
-                  )}
                 </div>
               </div>
             );
