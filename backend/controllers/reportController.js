@@ -41,12 +41,13 @@ const userPerformance = async (req, res, next) => {
     const wc = where.join(' AND ');
     const [rows] = await db.query(`
       SELECT u.id, u.name, u.email, u.role, u.avatar_url,
-        COALESCE(SUM(pl.delta), 0)                                     AS net_score,
-        COUNT(CASE WHEN pl.event_type='on_time'    THEN 1 END)         AS tasks_on_time,
-        COUNT(CASE WHEN pl.event_type='overdue'    THEN 1 END)         AS tasks_overdue,
-        COUNT(CASE WHEN pl.event_type='bug_minor'  THEN 1 END)         AS bugs_minor,
-        COUNT(CASE WHEN pl.event_type='bug_major'  THEN 1 END)         AS bugs_major,
-        COUNT(CASE WHEN pl.event_type='bug_critical' THEN 1 END)       AS bugs_critical,
+        COALESCE(SUM(pl.delta), 0)                                              AS net_score,
+        COUNT(CASE WHEN pl.event_type='on_time'               THEN 1 END)      AS tasks_on_time,
+        COUNT(CASE WHEN pl.event_type='overdue'               THEN 1 END)      AS tasks_overdue,
+        COUNT(CASE WHEN pl.event_type='bug_created_minor'     THEN 1 END)      AS bugs_minor,
+        COUNT(CASE WHEN pl.event_type='bug_created_major'     THEN 1 END)      AS bugs_major,
+        COUNT(CASE WHEN pl.event_type='bug_created_critical'  THEN 1 END)      AS bugs_critical,
+        COUNT(CASE WHEN pl.event_type LIKE 'bug_fixed_%'      THEN 1 END)      AS bugs_fixed,
         COALESCE((SELECT SUM(tl.hours) FROM time_logs tl WHERE tl.user_id=u.id),0) AS total_hours
       FROM users u
       LEFT JOIN ticket_points_log pl ON pl.user_id = u.id ${joinDateClause}
@@ -116,7 +117,7 @@ const bugAnalytics = async (req, res, next) => {
              COALESCE(SUM(pl.delta),0) AS points_lost
       FROM tickets t
       JOIN users u ON u.id = t.assignee_id
-      LEFT JOIN ticket_points_log pl ON pl.ticket_id=t.id AND pl.event_type IN ('bug_minor','bug_major','bug_critical')
+      LEFT JOIN ticket_points_log pl ON pl.ticket_id=t.id AND pl.event_type IN ('bug_created_minor','bug_created_major','bug_created_critical')
       WHERE ${wc} GROUP BY u.id, u.name, u.avatar_url ORDER BY bug_count DESC LIMIT 10
     `, params);
 
@@ -195,9 +196,9 @@ const leaderboard = async (req, res, next) => {
     const [rows] = await db.query(`
       SELECT u.id, u.name, u.avatar_url, u.role,
              COALESCE(SUM(pl.delta),0)                                  AS net_score,
-             COUNT(CASE WHEN pl.event_type='on_time'    THEN 1 END)     AS tasks_on_time,
-             COUNT(CASE WHEN pl.event_type='overdue'    THEN 1 END)     AS tasks_overdue,
-             COUNT(CASE WHEN pl.event_type LIKE 'bug_%' THEN 1 END)     AS total_bugs,
+             COUNT(CASE WHEN pl.event_type='on_time'              THEN 1 END) AS tasks_on_time,
+             COUNT(CASE WHEN pl.event_type='overdue'             THEN 1 END) AS tasks_overdue,
+             COUNT(CASE WHEN pl.event_type LIKE 'bug_created_%'  THEN 1 END) AS total_bugs,
              RANK() OVER (ORDER BY COALESCE(SUM(pl.delta),0) DESC)      AS rank_pos
       FROM users u
       LEFT JOIN ticket_points_log pl ON pl.user_id=u.id ${dateFilter}

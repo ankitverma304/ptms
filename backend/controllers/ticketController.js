@@ -261,7 +261,13 @@ const update = async (req, res, next) => {
       return res.status(403).json({ success:false, message:'Only QA, Team Lead, PM, or Admin can flag a ticket as a bug' });
     }
 
-    const allowed = ['title','description','priority','assignee_id','start_date','due_date','estimated_hrs','is_bug','bug_severity'];
+    // is_complex can only be set by team_lead+
+    const canMarkComplex = userRankUpd >= ROLE_RANK['team_lead'];
+    const allowed = [
+      'title','description','priority','assignee_id','start_date','due_date','estimated_hrs',
+      'is_bug','bug_severity',
+      ...(canMarkComplex ? ['is_complex'] : []),
+    ];
     const fields  = Object.keys(req.body).filter(k => allowed.includes(k));
 
     if (fields.length) {
@@ -287,9 +293,9 @@ const update = async (req, res, next) => {
       }
     }
 
-    // Handle bug flagging and points
+    // Handle bug flagging and points — creation penalty goes to the ticket's assignee
     if (req.body.is_bug && req.body.bug_severity && !ticket.is_bug && ticket.assignee_id) {
-      await PointsService.applyBugPenalty(conn, ticket.id, ticket.assignee_id, req.body.bug_severity, null);
+      await PointsService.applyBugCreationPenalty(conn, ticket.id, ticket.assignee_id, req.body.bug_severity);
     }
 
     await conn.commit();
@@ -345,21 +351,16 @@ const logTime = async (req, res, next) => {
       'INSERT INTO time_logs (ticket_id,user_id,hours,work_date,note,is_billable) VALUES (?,?,?,?,?,?)',
       [req.params.id, req.user.id, hours, work_date, note, is_billable]
     );
-    // Log bug fix completion if this is a bug
-    const [[ticket]] = await db.query('SELECT * FROM tickets WHERE id=?', [req.params.id]);
-    if (ticket?.is_bug && ticket?.assignee_id) {
-      await PointsService.updateBugSeverityFromTime(req.params.id, ticket.assignee_id, ticket.bug_severity, hours);
-    }
     res.status(201).json({ success:true, message:'Time logged' });
   } catch (err) { next(err); }
 };
 
-// Manual point adjustment (admin route) — minimal implementation
+// Manual point adjustment (admin only)
 const adjustPoints = async (req, res, next) => {
   try {
-    const { user_id, delta } = req.body;
-    // For now just acknowledge the adjustment; full implementation can update logs/points
-    res.json({ success: true, message: 'Points adjusted (stub)', data: { user_id, delta: +delta } });
+    const { user_id, delta, notes } = req.body;
+    await PointsService.manualAdjust(+req.params.id, +user_id, +delta, notes, req.user.id);
+    res.json({ success: true, message: 'Points adjusted', data: { user_id: +user_id, delta: +delta } });
   } catch (err) { next(err); }
 };
 

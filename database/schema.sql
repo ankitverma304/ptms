@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   estimated_hrs   DECIMAL(7,2) NULL,
   actual_hrs      DECIMAL(7,2) NOT NULL DEFAULT 0,         -- updated via trigger / service
   is_bug          BOOLEAN      NOT NULL DEFAULT FALSE,
+  is_complex      BOOLEAN      NOT NULL DEFAULT FALSE,      -- marks a complex task (+15 bonus on resolve)
   bug_severity    ENUM('minor','major','critical') NULL,   -- set when is_bug = true
   closed_at       DATETIME     NULL,
   created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -259,8 +260,23 @@ CREATE TABLE IF NOT EXISTS ticket_points_log (
   id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   ticket_id    BIGINT UNSIGNED NOT NULL,
   user_id      BIGINT UNSIGNED NOT NULL,
-  event_type   ENUM('on_time','overdue','bug_minor','bug_major','bug_critical','manual_adjust') NOT NULL,
-  delta        TINYINT         NOT NULL,                    -- +1, -1, -5, -10, or manual
+  event_type   ENUM(
+               'on_time',            -- resolved on/before due date (+10)
+               'overdue',            -- resolved late, tiered: -1 / -3 / -5
+               'complex_bonus',      -- complex task completion (+15)
+               'bug_created_minor',  -- bug flagged on ticket (-1)
+               'bug_created_major',  -- bug flagged on ticket (-3)
+               'bug_created_critical',-- bug flagged on ticket (-7)
+               'bug_fixed_minor',    -- bug resolved by fixer (+2)
+               'bug_fixed_major',    -- bug resolved by fixer (+5)
+               'bug_fixed_critical', -- bug resolved by fixer (+10)
+               'fast_fix_minor',     -- fixed within SLA ≤1d (+1)
+               'fast_fix_major',     -- fixed within SLA ≤4h (+3)
+               'fast_fix_critical',  -- fixed within SLA ≤1h (+5)
+               'self_fix_reduction', -- 50% creation penalty back when self-fixed within SLA
+               'manual_adjust'       -- admin override
+               ) NOT NULL,
+  delta        TINYINT         NOT NULL,                    -- signed point delta for this event
   bug_severity ENUM('minor','major','critical') NULL,
   fix_minutes  INT UNSIGNED    NULL,
   notes        TEXT            NULL,

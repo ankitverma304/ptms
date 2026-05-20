@@ -7,12 +7,26 @@ import { useAuth } from '../context/AuthContext';
 import { format, subDays } from 'date-fns';
 
 const EVENT_META = {
-  on_time:       { label: 'Resolved on time',  pill: 'bg-green-100 text-green-700' },
-  overdue:       { label: 'Resolved overdue',  pill: 'bg-orange-100 text-orange-700' },
-  bug_minor:     { label: 'Bug · Minor',        pill: 'bg-yellow-100 text-yellow-700' },
-  bug_major:     { label: 'Bug · Major',        pill: 'bg-orange-100 text-orange-700' },
-  bug_critical:  { label: 'Bug · Critical',     pill: 'bg-red-100 text-red-700' },
-  manual_adjust: { label: 'Manual adjustment',  pill: 'bg-blue-100 text-blue-700' },
+  // Completion
+  on_time:               { label: 'Resolved on time',          pill: 'bg-green-100 text-green-700' },
+  overdue:               { label: 'Resolved overdue',          pill: 'bg-orange-100 text-orange-600' },
+  complex_bonus:         { label: 'Complex task bonus',        pill: 'bg-purple-100 text-purple-700' },
+  // Bug created (penalties)
+  bug_created_minor:     { label: 'Bug created · Minor',       pill: 'bg-yellow-100 text-yellow-700' },
+  bug_created_major:     { label: 'Bug created · Major',       pill: 'bg-orange-100 text-orange-700' },
+  bug_created_critical:  { label: 'Bug created · Critical',    pill: 'bg-red-100 text-red-700' },
+  // Bug fixed (rewards)
+  bug_fixed_minor:       { label: 'Bug fixed · Minor',         pill: 'bg-teal-100 text-teal-700' },
+  bug_fixed_major:       { label: 'Bug fixed · Major',         pill: 'bg-teal-100 text-teal-700' },
+  bug_fixed_critical:    { label: 'Bug fixed · Critical',      pill: 'bg-teal-100 text-teal-700' },
+  // Fast fix bonuses
+  fast_fix_minor:        { label: 'Fast fix bonus · Minor',    pill: 'bg-cyan-100 text-cyan-700' },
+  fast_fix_major:        { label: 'Fast fix bonus · Major',    pill: 'bg-cyan-100 text-cyan-700' },
+  fast_fix_critical:     { label: 'Fast fix bonus · Critical', pill: 'bg-cyan-100 text-cyan-700' },
+  // Self-fix reduction
+  self_fix_reduction:    { label: 'Self-fix reduction',        pill: 'bg-indigo-100 text-indigo-700' },
+  // Manual
+  manual_adjust:         { label: 'Manual adjustment',         pill: 'bg-blue-100 text-blue-700' },
 };
 
 const SCOPE_BANNER = {
@@ -73,10 +87,11 @@ export default function ReportsPage() {
   })();
 
   const journeySummary = journey?.length ? {
-    net:     journey.reduce((s, e) => s + e.delta, 0),
-    on_time: journey.filter(e => e.event_type === 'on_time').length,
-    overdue: journey.filter(e => e.event_type === 'overdue').length,
-    bugs:    journey.filter(e => e.event_type.startsWith('bug_')).length,
+    net:        journey.reduce((s, e) => s + e.delta, 0),
+    on_time:    journey.filter(e => e.event_type === 'on_time').length,
+    overdue:    journey.filter(e => e.event_type === 'overdue').length,
+    bugs_made:  journey.filter(e => e.event_type.startsWith('bug_created_')).length,
+    bugs_fixed: journey.filter(e => e.event_type.startsWith('bug_fixed_')).length,
   } : null;
 
   const fmtDate = d => { try { return format(new Date(d), 'MMM d, yyyy'); } catch { return '—'; } };
@@ -138,7 +153,8 @@ export default function ReportsPage() {
                             <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Score</th>
                             <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">On Time</th>
                             <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Overdue</th>
-                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Bugs</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Bugs Made</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Bugs Fixed</th>
                             <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Hours</th>
                           </tr>
                         </thead>
@@ -164,6 +180,7 @@ export default function ReportsPage() {
                               <td className="px-4 sm:px-5 py-3 text-right text-green-600">{u.tasks_on_time}</td>
                               <td className="px-4 sm:px-5 py-3 text-right text-orange-500">{u.tasks_overdue}</td>
                               <td className="px-4 sm:px-5 py-3 text-right text-red-500">{(u.bugs_minor || 0) + (u.bugs_major || 0) + (u.bugs_critical || 0)}</td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-teal-600">{u.bugs_fixed || 0}</td>
                               <td className="px-4 sm:px-5 py-3 text-right text-slate-600">{u.total_hours}</td>
                             </tr>
                           ))}
@@ -204,10 +221,10 @@ export default function ReportsPage() {
                 {/* Mini summary cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 border-b border-gray-100">
                   {[
-                    { label: 'Net Score', value: journeySummary.net,      color: journeySummary.net >= 0 ? 'text-green-600' : 'text-red-600', prefix: journeySummary.net > 0 ? '+' : '' },
-                    { label: 'On Time',   value: journeySummary.on_time,  color: 'text-green-600',  prefix: '' },
-                    { label: 'Overdue',   value: journeySummary.overdue,  color: 'text-orange-500', prefix: '' },
-                    { label: 'Bugs',      value: journeySummary.bugs,     color: 'text-red-500',    prefix: '' },
+                    { label: 'Net Score',  value: journeySummary.net,        color: journeySummary.net >= 0 ? 'text-green-600' : 'text-red-600', prefix: journeySummary.net > 0 ? '+' : '' },
+                    { label: 'On Time',    value: journeySummary.on_time,    color: 'text-green-600',  prefix: '' },
+                    { label: 'Bugs Made',  value: journeySummary.bugs_made,  color: 'text-red-500',    prefix: '' },
+                    { label: 'Bugs Fixed', value: journeySummary.bugs_fixed, color: 'text-teal-600',   prefix: '' },
                   ].map(s => (
                     <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center">
                       <p className={`text-2xl font-bold ${s.color}`}>{s.prefix}{s.value}</p>
