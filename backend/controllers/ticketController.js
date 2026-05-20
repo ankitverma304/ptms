@@ -3,6 +3,51 @@ const PointsService  = require('../services/pointsService');
 const NotifyService  = require('../services/notifyService');
 const { ROLE_RANK }  = require('../middleware/auth');
 
+// ── GET /api/tickets (role-scoped, no project required) ───────
+const listAll = async (req, res, next) => {
+  try {
+    const { status, priority, is_bug, search, page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+    const userRank = ROLE_RANK[req.user.role] || 0;
+
+    let where = [], params = [];
+
+    if (userRank >= ROLE_RANK['project_manager']) {
+      // PM+ sees all tickets
+    } else if (userRank >= ROLE_RANK['team_lead']) {
+      // team_lead sees tickets in their projects
+      where.push('t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id=?)');
+      params.push(req.user.id);
+    } else {
+      // developer / qa — tickets assigned to or reported by them
+      where.push('(t.assignee_id=? OR t.reporter_id=?)');
+      params.push(req.user.id, req.user.id);
+    }
+
+    if (status)   { where.push('t.status=?');      params.push(status); }
+    if (priority) { where.push('t.priority=?');    params.push(priority); }
+    if (is_bug)   { where.push('t.is_bug=?');      params.push(is_bug === 'true' ? 1 : 0); }
+    if (search)   { where.push('(t.title LIKE ? OR t.ticket_code LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
+
+    const wc = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const [rows] = await db.query(`
+      SELECT t.id, t.ticket_code, t.title, t.priority, t.status, t.is_bug, t.bug_severity,
+             t.due_date, t.estimated_hrs, t.actual_hrs, t.created_at, t.updated_at,
+             a.name AS assignee_name, a.avatar_url AS assignee_avatar,
+             p.name AS project_name, p.code AS project_code, p.id AS project_id
+      FROM tickets t
+      LEFT JOIN users a    ON a.id = t.assignee_id
+      LEFT JOIN projects p ON p.id = t.project_id
+      ${wc} ORDER BY FIELD(t.priority,'critical','high','medium','low'), t.due_date ASC
+      LIMIT ? OFFSET ?
+    `, [...params, +limit, +offset]);
+
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) AS total FROM tickets t ${wc}`, params);
+    res.json({ success: true, data: rows, meta: { total, page: +page, limit: +limit } });
+  } catch (err) { next(err); }
+};
+
 // ── GET /api/projects/:projectId/tickets ──────────────────────
 const list = async (req, res, next) => {
   try {
@@ -110,13 +155,16 @@ const getOne = async (req, res, next) => {
       WHERE t.id=?`, [req.params.id]);
     if (!ticket) return res.status(404).json({ success:false, message:'Ticket not found' });
 
-    // Verify caller is a project member (PM+ bypass)
+    // PM+ bypass; assignee and reporter always allowed; otherwise must be a project member
     if ((ROLE_RANK[req.user.role] || 0) < ROLE_RANK['project_manager']) {
-      const [mem] = await db.query(
-        'SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',
-        [ticket.project_id, req.user.id]
-      );
-      if (!mem.length) return res.status(403).json({ success:false, message:'Not a project member' });
+      const isDirectlyInvolved = ticket.assignee_id === req.user.id || ticket.reporter_id === req.user.id;
+      if (!isDirectlyInvolved) {
+        const [mem] = await db.query(
+          'SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',
+          [ticket.project_id, req.user.id]
+        );
+        if (!mem.length) return res.status(403).json({ success:false, message:'Not a project member' });
+      }
     }
 
     const [tags]      = await db.query(`SELECT t.id,t.name,t.color FROM tags t JOIN ticket_tags tt ON tt.tag_id=t.id WHERE tt.ticket_id=?`, [req.params.id]);
@@ -194,18 +242,23 @@ const update = async (req, res, next) => {
     const [[ticket]] = await conn.query('SELECT * FROM tickets WHERE id=?', [id]);
     if (!ticket) return res.status(404).json({ success:false, message:'Ticket not found' });
 
-    // Only assignee or team_lead+ can update a ticket
     const userRankUpd = ROLE_RANK[req.user.role] || 0;
-    if (userRankUpd < ROLE_RANK['team_lead'] && ticket.assignee_id !== req.user.id) {
-      return res.status(403).json({ success:false, message:'Only the assignee or a team lead can update this ticket' });
+    const BUG_FLAG_ROLES = ['super_admin','admin','project_manager','team_lead','qa'];
+
+    // If the request ONLY sets is_bug / bug_severity and the caller is an authorized bug-flagging role,
+    // bypass the assignee check — QA reviewing any project ticket is the core use case here.
+    const requestedKeys = Object.keys(req.body);
+    const isBugFlagOnly = requestedKeys.length > 0 && requestedKeys.every(k => ['is_bug','bug_severity'].includes(k));
+
+    if (!(isBugFlagOnly && BUG_FLAG_ROLES.includes(req.user.role))) {
+      if (userRankUpd < ROLE_RANK['team_lead'] && ticket.assignee_id !== req.user.id) {
+        return res.status(403).json({ success:false, message:'Only the assignee or a team lead can update this ticket' });
+      }
     }
 
-    // Only SA/Admin/PM/TL/QA may flag a ticket as a bug
-    if (req.body.is_bug) {
-      const BUG_ROLES = ['super_admin','admin','project_manager','team_lead','qa'];
-      if (!BUG_ROLES.includes(req.user.role)) {
-        return res.status(403).json({ success:false, message:'Only QA, Team Lead, PM, or Admin can flag a ticket as a bug' });
-      }
+    // Only SA/Admin/PM/TL/QA may flag a ticket as a bug (developer explicitly excluded)
+    if (req.body.is_bug && !BUG_FLAG_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ success:false, message:'Only QA, Team Lead, PM, or Admin can flag a ticket as a bug' });
     }
 
     const allowed = ['title','description','priority','assignee_id','start_date','due_date','estimated_hrs','is_bug','bug_severity'];
@@ -216,7 +269,20 @@ const update = async (req, res, next) => {
       await conn.query(`UPDATE tickets SET ${sets} WHERE id=?`, [...fields.map(f=>req.body[f]), id]);
       for (const f of fields) {
         if (ticket[f] != req.body[f]) {
-          await logHistory(conn, id, req.user.id, 'updated', f, String(ticket[f] ?? ''), String(req.body[f] ?? ''));
+          if (f === 'assignee_id') {
+            let oldName = 'Unassigned', newName = 'Unassigned';
+            if (ticket.assignee_id) {
+              const [[u]] = await conn.query('SELECT name FROM users WHERE id=?', [ticket.assignee_id]);
+              if (u) oldName = u.name;
+            }
+            if (req.body.assignee_id) {
+              const [[u]] = await conn.query('SELECT name FROM users WHERE id=?', [req.body.assignee_id]);
+              if (u) newName = u.name;
+            }
+            await logHistory(conn, id, req.user.id, 'updated', 'assignee', oldName, newName);
+          } else {
+            await logHistory(conn, id, req.user.id, 'updated', f, String(ticket[f] ?? ''), String(req.body[f] ?? ''));
+          }
         }
       }
     }
@@ -314,4 +380,4 @@ const logBug = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { list, create, getOne, get: getOne, changeStatus, update, remove, logTime, logBug, adjustPoints };
+module.exports = { listAll, list, create, getOne, get: getOne, changeStatus, update, remove, logTime, logBug, adjustPoints };

@@ -50,6 +50,17 @@ exports.logout = asyncHandler(async (req, res) => {
 });
 
 exports.me = asyncHandler(async (req, res) => {
-  const [rows] = await db.query('SELECT id, name, email, role, total_points, avatar_url, last_login, created_at FROM users WHERE id = ?', [req.user.id]);
-  res.json({ success: true, user: rows[0] });
+  const [rows] = await db.query(
+    'SELECT id, name, email, role, custom_role_id, total_points, avatar_url, last_login, created_at FROM users WHERE id = ?',
+    [req.user.id]
+  );
+  const user = rows[0];
+
+  let allowed_modules = null;
+  if (user.custom_role_id) {
+    const [mods] = await db.query('SELECT module FROM role_modules WHERE role_id = ?', [user.custom_role_id]);
+    if (mods.length > 0) allowed_modules = mods.map(m => m.module);
+  }
+
+  res.json({ success: true, user: { ...user, allowed_modules } });
 });

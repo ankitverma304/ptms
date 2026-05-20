@@ -9,7 +9,12 @@ const list = async (req, res, next) => {
     let where = [], params = [];
 
     if (ROLE_RANK[user.role] < ROLE_RANK['project_manager']) {
-      where.push('pm.user_id = ?'); params.push(user.id);
+      // show projects where the user is a member OR has a ticket assigned/reported to them
+      where.push(`(pm.user_id = ? OR p.id IN (
+        SELECT t.project_id FROM tickets t
+        WHERE t.assignee_id = ? OR t.reporter_id = ?
+      ))`);
+      params.push(user.id, user.id, user.id);
     }
     if (status)   { where.push('p.status = ?');   params.push(status); }
     if (priority) { where.push('p.priority = ?'); params.push(priority); }

@@ -369,6 +369,28 @@ END$$
 DELIMITER ;
 
 -- ──────────────────────────────────────────────
+--  CUSTOM ROLES
+-- ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS custom_roles (
+  id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL UNIQUE,
+  description VARCHAR(500) NULL,
+  base_role   ENUM('super_admin','admin','project_manager','team_lead','developer','qa') NOT NULL DEFAULT 'developer',
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ──────────────────────────────────────────────
+--  ROLE MODULE PERMISSIONS
+-- ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS role_modules (
+  role_id INT UNSIGNED NOT NULL,
+  module  VARCHAR(50)  NOT NULL,
+  PRIMARY KEY (role_id, module),
+  FOREIGN KEY (role_id) REFERENCES custom_roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ──────────────────────────────────────────────
 --  SEED — Default super admin
 -- ──────────────────────────────────────────────
 -- Password: Admin@1234  (bcrypt hash, cost 12)

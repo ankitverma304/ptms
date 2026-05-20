@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { projectAPI, ticketAPI, userAPI } from '../utils/api';
-import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const PRIORITY_COLOR = { low: 'bg-gray-100 text-gray-600', medium: 'bg-blue-100 text-blue-700', high: 'bg-orange-100 text-orange-700', critical: 'bg-red-100 text-red-700' };
@@ -10,7 +9,6 @@ const STATUS_COLOR    = { open: 'bg-gray-100 text-gray-700', in_progress: 'bg-bl
 
 export default function ProjectDetail() {
   const { id } = useParams();
-  const { isPM } = useAuth();
   const qc = useQueryClient();
   const [tab, setTab] = useState('tickets');
   const [showTicketForm, setShowTicketForm] = useState(false);
@@ -99,8 +97,7 @@ export default function ProjectDetail() {
 
       {tab === 'tickets' && (
         <div>
-          {isPM() && (
-            <div className="mb-4">
+          <div className="mb-4">
               {!showTicketForm ? (
                 <button onClick={() => setShowTicketForm(true)}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium px-1 py-1">
@@ -165,7 +162,6 @@ export default function ProjectDetail() {
                 </div>
               )}
             </div>
-          )}
 
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
             <div className="divide-y divide-gray-50">

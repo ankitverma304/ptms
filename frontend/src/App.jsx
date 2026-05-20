@@ -15,7 +15,9 @@ import TicketDetail  from './pages/TicketDetail';
 import ReportsPage   from './pages/ReportsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import TimelinePage  from './pages/TimelinePage';
+import TicketsPage   from './pages/TicketsPage';
 import UsersPage     from './pages/UsersPage';
+import RolesPage     from './pages/RolesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -59,10 +61,12 @@ function AppRoutes() {
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="tickets/:id" element={<TicketDetail />} />
+        <Route path="tickets" element={<TicketsPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="leaderboard" element={<LeaderboardPage />} />
         <Route path="timeline/:userId?" element={<TimelinePage />} />
         <Route path="users" element={<AdminRoute><UsersPage /></AdminRoute>} />
+        <Route path="roles" element={<AdminRoute><RolesPage /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

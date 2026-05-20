@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { reportAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { format, subDays } from 'date-fns';
+
+const EVENT_META = {
+  on_time:       { label: 'Resolved on time',  pill: 'bg-green-100 text-green-700' },
+  overdue:       { label: 'Resolved overdue',  pill: 'bg-orange-100 text-orange-700' },
+  bug_minor:     { label: 'Bug · Minor',        pill: 'bg-yellow-100 text-yellow-700' },
+  bug_major:     { label: 'Bug · Major',        pill: 'bg-orange-100 text-orange-700' },
+  bug_critical:  { label: 'Bug · Critical',     pill: 'bg-red-100 text-red-700' },
+  manual_adjust: { label: 'Manual adjustment',  pill: 'bg-blue-100 text-blue-700' },
+};
 
 const SCOPE_BANNER = {
   developer: { text: 'Showing your data only',           style: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -12,14 +22,17 @@ const SCOPE_BANNER = {
 };
 
 export default function ReportsPage() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole('super_admin', 'admin');
+
   const [tab, setTab] = useState('performance');
   const defaultEnd   = format(new Date(), 'yyyy-MM-dd');
   const defaultStart = format(subDays(new Date(), 30), 'yyyy-MM-dd');
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate]     = useState(defaultEnd);
+  const [journeyUserId, setJourneyUserId] = useState('');
 
-  const { data: perf } = useQuery(
+  const { data: perf, isLoading: perfLoading, isError: perfError } = useQuery(
     ['report-perf', startDate, endDate],
     () => reportAPI.userPerformance({ start_date: startDate, end_date: endDate }).then(r => r.data.data),
     { enabled: tab === 'performance' }
@@ -36,6 +49,37 @@ export default function ReportsPage() {
     () => reportAPI.timeTracking({ start_date: startDate, end_date: endDate }).then(r => r.data.data),
     { enabled: tab === 'time' }
   );
+
+  // Journey: admin picks a user; everyone else sees their own automatically
+  const journeyTarget = isAdmin ? journeyUserId : user?.id;
+  const { data: journey, isLoading: journeyLoading } = useQuery(
+    ['points-journey', journeyTarget, startDate, endDate],
+    () => reportAPI.pointsJourney({
+      user_id: journeyTarget,
+      start_date: startDate,
+      end_date: endDate,
+    }).then(r => r.data.data),
+    { enabled: tab === 'performance' && !!journeyTarget, staleTime: 30_000 }
+  );
+
+  // Compute running totals (events arrive newest-first; reverse → accumulate → reverse back)
+  const eventsWithRunning = (() => {
+    if (!journey?.length) return [];
+    let running = 0;
+    return [...journey].reverse().map(e => {
+      running += e.delta;
+      return { ...e, running_total: running };
+    }).reverse();
+  })();
+
+  const journeySummary = journey?.length ? {
+    net:     journey.reduce((s, e) => s + e.delta, 0),
+    on_time: journey.filter(e => e.event_type === 'on_time').length,
+    overdue: journey.filter(e => e.event_type === 'overdue').length,
+    bugs:    journey.filter(e => e.event_type.startsWith('bug_')).length,
+  } : null;
+
+  const fmtDate = d => { try { return format(new Date(d), 'MMM d, yyyy'); } catch { return '—'; } };
 
   const TABS = ['performance', 'bugs', 'time'];
 
@@ -72,49 +116,159 @@ export default function ReportsPage() {
       </div>
 
       {/* User performance */}
-      {tab === 'performance' && perf && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[560px]">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">User</th>
-                    <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Score</th>
-                    <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">On Time</th>
-                    <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Overdue</th>
-                    <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Bugs</th>
-                    <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Hours</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {perf.map(u => (
-                    <tr key={u.id} className="hover:bg-gray-50">
-                      <td className="px-4 sm:px-5 py-3">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0">
-                            {u.name?.charAt(0)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-slate-800 truncate">{u.name}</p>
-                            <p className="text-xs text-slate-400 capitalize truncate">{u.role?.replace(/_/g, ' ')}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className={`px-4 sm:px-5 py-3 text-right font-bold ${u.net_score >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {u.net_score >= 0 ? '+' : ''}{u.net_score}
-                      </td>
-                      <td className="px-4 sm:px-5 py-3 text-right text-green-600">{u.tasks_on_time}</td>
-                      <td className="px-4 sm:px-5 py-3 text-right text-orange-500">{u.tasks_overdue}</td>
-                      <td className="px-4 sm:px-5 py-3 text-right text-red-500">{(u.bugs_minor || 0) + (u.bugs_major || 0) + (u.bugs_critical || 0)}</td>
-                      <td className="px-4 sm:px-5 py-3 text-right text-slate-600">{u.total_hours}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {tab === 'performance' && (
+        <div className="space-y-6">
+
+          {/* ── Overview table ── */}
+          {perfLoading
+            ? <p className="text-sm text-slate-400 text-center py-12">Loading…</p>
+            : perfError
+              ? <p className="text-sm text-red-500 text-center py-12">Failed to load performance data. Please try again.</p>
+              : !perf?.length
+                ? <p className="text-sm text-slate-400 text-center py-12">No data for this period</p>
+                : <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="px-5 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-slate-700">Overview</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[560px]">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <th className="text-left px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">User</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Score</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">On Time</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Overdue</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Bugs</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Hours</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {perf.map(u => (
+                            <tr key={u.id}
+                              onClick={() => isAdmin && setJourneyUserId(String(u.id))}
+                              className={`hover:bg-gray-50 ${isAdmin ? 'cursor-pointer' : ''} ${isAdmin && String(journeyUserId) === String(u.id) ? 'bg-blue-50' : ''}`}>
+                              <td className="px-4 sm:px-5 py-3">
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                  <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0">
+                                    {u.name?.charAt(0)}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-slate-800 truncate">{u.name}</p>
+                                    <p className="text-xs text-slate-400 capitalize truncate">{u.role?.replace(/_/g, ' ')}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className={`px-4 sm:px-5 py-3 text-right font-bold ${u.net_score >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {u.net_score >= 0 ? '+' : ''}{u.net_score}
+                              </td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-green-600">{u.tasks_on_time}</td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-orange-500">{u.tasks_overdue}</td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-red-500">{(u.bugs_minor || 0) + (u.bugs_major || 0) + (u.bugs_critical || 0)}</td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-slate-600">{u.total_hours}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {isAdmin && <p className="px-5 py-2 text-xs text-slate-400 border-t border-gray-50">Click a row to view that user's points journey below</p>}
+                  </div>
+          }
+
+          {/* ── Points Journey ── */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Points Journey</p>
+                <p className="text-xs text-slate-400 mt-0.5">Every ticket event that earned or deducted points</p>
+              </div>
+              {isAdmin && (
+                <select
+                  value={journeyUserId}
+                  onChange={e => setJourneyUserId(e.target.value)}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">— Select a user —</option>
+                  {perf?.map(u => <option key={u.id} value={String(u.id)}>{u.name}</option>)}
+                </select>
+              )}
             </div>
-            {!perf?.length && <p className="px-5 py-8 text-sm text-slate-400 text-center">No data for this period</p>}
+
+            {!journeyTarget ? (
+              <p className="px-5 py-12 text-sm text-slate-400 text-center">Select a user above to view their points journey</p>
+            ) : journeyLoading ? (
+              <p className="px-5 py-12 text-sm text-slate-400 text-center">Loading…</p>
+            ) : !journey?.length ? (
+              <p className="px-5 py-12 text-sm text-slate-400 text-center">No point events in this period</p>
+            ) : (
+              <>
+                {/* Mini summary cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 border-b border-gray-100">
+                  {[
+                    { label: 'Net Score', value: journeySummary.net,      color: journeySummary.net >= 0 ? 'text-green-600' : 'text-red-600', prefix: journeySummary.net > 0 ? '+' : '' },
+                    { label: 'On Time',   value: journeySummary.on_time,  color: 'text-green-600',  prefix: '' },
+                    { label: 'Overdue',   value: journeySummary.overdue,  color: 'text-orange-500', prefix: '' },
+                    { label: 'Bugs',      value: journeySummary.bugs,     color: 'text-red-500',    prefix: '' },
+                  ].map(s => (
+                    <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center">
+                      <p className={`text-2xl font-bold ${s.color}`}>{s.prefix}{s.value}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Timeline feed */}
+                <div className="divide-y divide-gray-50">
+                  {eventsWithRunning.map(ev => {
+                    const meta = EVENT_META[ev.event_type] || { label: ev.event_type, pill: 'bg-gray-100 text-gray-700' };
+                    return (
+                      <div key={ev.id} className="px-5 py-4 flex items-start gap-3 sm:gap-5 hover:bg-gray-50 transition-colors">
+
+                        {/* Date */}
+                        <div className="w-20 flex-shrink-0 pt-0.5 hidden sm:block">
+                          <p className="text-xs text-slate-400 leading-snug">{fmtDate(ev.created_at)}</p>
+                        </div>
+
+                        {/* Connector dot */}
+                        <div className="flex flex-col items-center flex-shrink-0 pt-1.5">
+                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ev.delta > 0 ? 'bg-green-400' : 'bg-red-400'}`} />
+                        </div>
+
+                        {/* Ticket info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                            <Link
+                              to={`/tickets/${ev.ticket_id}`}
+                              className="text-xs font-mono font-semibold text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0"
+                            >
+                              {ev.ticket_code}
+                            </Link>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${meta.pill}`}>
+                              {meta.label}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium text-slate-800 truncate">{ev.ticket_title}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{ev.project_name}</p>
+                          <p className="text-xs text-slate-400 sm:hidden mt-0.5">{fmtDate(ev.created_at)}</p>
+                        </div>
+
+                        {/* Points delta + running total */}
+                        <div className="flex flex-col items-end flex-shrink-0 text-right">
+                          <span className={`text-lg font-bold leading-none ${ev.delta > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {ev.delta > 0 ? '+' : ''}{ev.delta}
+                          </span>
+                          <span className="text-xs text-slate-400 mt-1">
+                            Total {ev.running_total >= 0 ? '+' : ''}{ev.running_total}
+                          </span>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
+
         </div>
       )}
 
@@ -231,7 +385,7 @@ export default function ReportsPage() {
                     <p className="text-sm font-semibold text-slate-700 mb-4">Hours logged per day</p>
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={time.daily}>
-                        <XAxis dataKey="work_date" tick={{ fontSize: 11 }} tickFormatter={d => format(new Date(d + 'T00:00'), 'MMM d')} />
+                        <XAxis dataKey="work_date" tick={{ fontSize: 11 }} tickFormatter={d => { try { return format(new Date(String(d).length === 10 ? d + 'T00:00' : d), 'MMM d'); } catch { return ''; } }} />
                         <YAxis tick={{ fontSize: 11 }} />
                         <Tooltip formatter={v => [`${v} hrs`, 'Hours']} />
                         <Bar dataKey="hours" fill="#3B82F6" radius={[4, 4, 0, 0]} />

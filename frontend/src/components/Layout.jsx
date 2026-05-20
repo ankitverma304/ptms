@@ -5,12 +5,14 @@ import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
 const NAV = [
-  { to: '/',             icon: '⊞', label: 'Dashboard' },
-  { to: '/projects',    icon: '📁', label: 'Projects' },
-  { to: '/reports',     icon: '📊', label: 'Reports' },
-  { to: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
-  { to: '/timeline',    icon: '⏱', label: 'My Timeline' },
-  { to: '/users',       icon: '👥', label: 'Users', adminOnly: true },
+  { to: '/',            icon: '⊞', label: 'Dashboard',   moduleKey: 'dashboard' },
+  { to: '/projects',   icon: '📁', label: 'Projects',    moduleKey: 'projects' },
+  { to: '/tickets',    icon: '🎫', label: 'Tickets',     moduleKey: 'tickets' },
+  { to: '/reports',    icon: '📊', label: 'Reports',     moduleKey: 'reports' },
+  { to: '/leaderboard',icon: '🏆', label: 'Leaderboard', moduleKey: 'leaderboard' },
+  { to: '/timeline',   icon: '⏱', label: 'My Timeline', moduleKey: 'timeline' },
+  { to: '/users',      icon: '👥', label: 'Users',       adminOnly: true },
+  { to: '/roles',      icon: '🔐', label: 'Roles',       adminOnly: true },
 ];
 
 const ROLE_COLORS = {
@@ -22,7 +24,7 @@ const ROLE_COLORS = {
   qa:              'bg-gray-100 text-gray-800',
 };
 
-function SidebarInner({ compact, user, onLogout }) {
+function SidebarInner({ compact, user, onLogout, nav }) {
   return (
     <>
       <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-700 flex-shrink-0">
@@ -31,7 +33,7 @@ function SidebarInner({ compact, user, onLogout }) {
       </div>
 
       <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-y-auto">
-        {NAV.map(item => (
+        {nav.map(item => (
           <NavLink key={item.to} to={item.to} end={item.to === '/'}
             className={({ isActive }) => clsx(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
@@ -71,7 +73,7 @@ function SidebarInner({ compact, user, onLogout }) {
 }
 
 export default function Layout() {
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout, hasRole, canAccessModule } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -92,8 +94,11 @@ export default function Layout() {
     navigate('/login');
   };
 
-  // Filter admin-only nav items
-  const visibleNav = NAV.filter(item => !item.adminOnly || hasRole('super_admin'));
+  const visibleNav = NAV.filter(item => {
+    if (item.adminOnly) return hasRole('super_admin');
+    if (item.moduleKey) return canAccessModule(item.moduleKey);
+    return true;
+  });
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -163,7 +168,7 @@ export default function Layout() {
         'transition-all duration-200',
         collapsed ? 'w-16' : 'w-56'
       )}>
-        <SidebarInner compact={collapsed} user={user} onLogout={handleLogout} />
+        <SidebarInner compact={collapsed} user={user} onLogout={handleLogout} nav={visibleNav} />
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="absolute top-5 -right-3 w-6 h-6 bg-slate-700 border border-slate-600 rounded-full flex items-center justify-center text-xs text-white hover:bg-blue-500 transition-colors z-10 shadow-sm">

@@ -81,8 +81,15 @@ const requireProjectMember = async (req, res, next) => {
     if (!projectId) return res.status(400).json({ success: false, message: 'Project id required' });
     const userRank = ROLE_RANK[req.user?.role] || 0;
     if (userRank >= ROLE_RANK['project_manager']) return next();
-    const [rows] = await db.query('SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ?', [projectId, req.user.id]);
-    if (rows.length) return next();
+    // Pass if explicit project member
+    const [mem] = await db.query('SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ?', [projectId, req.user.id]);
+    if (mem.length) return next();
+    // Also pass if user has a ticket assigned or reported in this project
+    const [tkts] = await db.query(
+      'SELECT 1 FROM tickets WHERE project_id = ? AND (assignee_id = ? OR reporter_id = ?) LIMIT 1',
+      [projectId, req.user.id, req.user.id]
+    );
+    if (tkts.length) return next();
     return res.status(403).json({ success: false, message: 'Must be a project member' });
   } catch (err) {
     next(err);

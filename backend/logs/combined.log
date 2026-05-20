@@ -19,3 +19,187 @@ Error: Refresh token required
     at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:284:15
     at router.process_params (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:346:12)
     at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:280:10)
+2026-05-20 12:26:00 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:01 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:09 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:10 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:16 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:17 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:34 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:35 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:48 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:49 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:56 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:26:57 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:27:06 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:27:07 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:28:34 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:28:35 [error] GET /api/v1/roles — Table 'ptms_db.role_modules' doesn't exist
+Error: Table 'ptms_db.role_modules' doesn't exist
+    at list (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/roleController.js:6:30)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:51:35
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at authenticate (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/auth.js:27:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-05-20 12:41:23 [error] POST /api/v1/auth/refresh — Refresh token required
+Error: Refresh token required
+    at appError (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/errorHandler.js:5:15)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/authController.js:36:28
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/errorHandler.js:12:19
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:284:15
+    at router.process_params (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:346:12)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:280:10)
+2026-05-20 12:46:44 [error] POST /api/v1/auth/refresh — Refresh token required
+Error: Refresh token required
+    at appError (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/errorHandler.js:5:15)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/controllers/authController.js:36:28
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/middleware/errorHandler.js:12:19
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at /Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:284:15
+    at router.process_params (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:346:12)
+    at next (/Users/ankitverma/Projects/Hit_and_try/ptms/backend/node_modules/express/lib/router/index.js:280:10)

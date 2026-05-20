@@ -31,7 +31,7 @@ export default function TicketDetail() {
   const [editingDesc, setEditingDesc] = useState(false);
   const [descDraft, setDescDraft] = useState('');
 
-  const { data: ticket, isLoading } = useQuery(
+  const { data: ticket, isLoading, error: ticketError } = useQuery(
     ['ticket', id],
     () => ticketAPI.get(id).then(r => r.data.data)
   );
@@ -116,7 +116,14 @@ export default function TicketDetail() {
   );
 
   if (isLoading) return <div className="p-4 sm:p-6 text-slate-400 text-sm">Loading…</div>;
-  if (!ticket) return <div className="p-4 sm:p-6 text-slate-400 text-sm">Ticket not found</div>;
+  if (ticketError) {
+    const status = ticketError.response?.status;
+    const msg = status === 403 ? 'You do not have permission to view this ticket.'
+              : status === 404 ? 'Ticket not found.'
+              : 'Failed to load ticket.';
+    return <div className="p-4 sm:p-6 text-slate-500 text-sm">{msg}</div>;
+  }
+  if (!ticket) return null;
 
   const nextStatuses = TRANSITIONS[ticket.status] || [];
 
@@ -187,10 +194,10 @@ export default function TicketDetail() {
 
         {/* Meta grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-50 text-sm">
-          {/* Assignee — editable for team_lead+ */}
+          {/* Assignee — editable by the current assignee or team_lead+ */}
           <div>
             <p className="text-xs text-slate-400 mb-0.5">Assignee</p>
-            {canManage && editingAssignee ? (
+            {canEditTicket && editingAssignee ? (
               <div className="space-y-1.5">
                 <select
                   value={selectedAssignee}
@@ -218,7 +225,7 @@ export default function TicketDetail() {
             ) : (
               <div className="flex items-center gap-1.5">
                 <p className="font-medium text-slate-800 truncate">{ticket.assignee_name || '—'}</p>
-                {canManage && (
+                {canEditTicket && (
                   <button
                     onClick={() => { setSelectedAssignee(ticket.assignee_id ? String(ticket.assignee_id) : ''); setEditingAssignee(true); }}
                     className="text-xs text-blue-500 hover:text-blue-700 flex-shrink-0 leading-none">
@@ -272,9 +279,9 @@ export default function TicketDetail() {
                     onChange={e => setBugSeverity(e.target.value)}
                     className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="minor">Minor (-1 pt)</option>
-                    <option value="major">Major (-5 pts)</option>
-                    <option value="critical">Critical (-10 pts)</option>
+                    <option value="minor">Minor</option>
+                    <option value="major">Major</option>
+                    <option value="critical">Critical</option>
                   </select>
                   <button
                     onClick={() => flagBugMut.mutate({ is_bug: 1, bug_severity: bugSeverity })}
@@ -293,9 +300,9 @@ export default function TicketDetail() {
                   onChange={e => setBugSeverity(e.target.value)}
                   className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="minor">Minor (-1 pt)</option>
-                  <option value="major">Major (-5 pts)</option>
-                  <option value="critical">Critical (-10 pts)</option>
+                  <option value="minor">Minor</option>
+                  <option value="major">Major</option>
+                  <option value="critical">Critical</option>
                 </select>
                 <button
                   onClick={() => flagBugMut.mutate({ is_bug: 1, bug_severity: bugSeverity })}
@@ -388,7 +395,9 @@ export default function TicketDetail() {
                 <div key={h.id} className="px-4 py-2.5">
                   <p className="text-xs text-slate-700 font-medium capitalize">{h.action?.replace(/_/g, ' ')}</p>
                   {h.field_changed && (
-                    <p className="text-xs text-slate-400">{h.field_changed}: {h.old_value} → {h.new_value}</p>
+                    <p className="text-xs text-slate-400 capitalize">
+                      {h.field_changed.replace(/_/g, ' ')}: {h.old_value || '—'} → {h.new_value || '—'}
+                    </p>
                   )}
                   <p className="text-xs text-slate-400 mt-0.5">{h.user_name} · {new Date(h.created_at).toLocaleString()}</p>
                 </div>

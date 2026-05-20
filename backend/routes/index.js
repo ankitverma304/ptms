@@ -12,6 +12,7 @@ const timeC    = require('../controllers/timeLogController');
 const commC    = require('../controllers/commentController');
 const reptC    = require('../controllers/reportController');
 const userC    = require('../controllers/userController');
+const roleC    = require('../controllers/roleController');
 
 // ── Rate limiters ─────────────────────────────────────────────
 const loginLimiter = rateLimit({ windowMs: 60_000, max: 5, message: { success: false, message: 'Too many login attempts' } });
@@ -53,6 +54,22 @@ router.get   ('/users/me/notifications',  authenticate, userC.notifications);
 router.post  ('/users/me/notifications/read', authenticate, userC.markRead);
 
 // ═══════════════════════════════════════════════════════════════
+// ROLES (super_admin only)
+// ═══════════════════════════════════════════════════════════════
+router.get   ('/roles',         authenticate, authorize('super_admin'), roleC.list);
+router.post  ('/roles',         authenticate, authorize('super_admin'), [
+  body('name').trim().notEmpty().withMessage('Role name is required'),
+], validate, roleC.create);
+router.put   ('/roles/:id',     authenticate, authorize('super_admin'), roleC.update);
+router.delete('/roles/:id',     authenticate, authorize('super_admin'), roleC.remove);
+router.post  ('/roles/assign',  authenticate, authorize('super_admin'), [
+  body('user_id').isInt().withMessage('user_id is required'),
+], validate, roleC.assign);
+router.put   ('/roles/:id/modules', authenticate, authorize('super_admin'), [
+  body('modules').optional({ nullable: true }).isArray(),
+], validate, roleC.setModules);
+
+// ═══════════════════════════════════════════════════════════════
 // PROJECTS
 // ═══════════════════════════════════════════════════════════════
 router.get   ('/projects',            authenticate, projC.list);
@@ -71,6 +88,7 @@ router.delete('/projects/:id/members/:userId', authenticate, authorizeMin('proje
 // ═══════════════════════════════════════════════════════════════
 router.get   ('/projects/:projectId/tickets', authenticate, requireProjectMember, tickC.list);
 
+router.get   ('/tickets',             authenticate, tickC.listAll);
 router.post  ('/tickets',             authenticate, [
   body('project_id').isInt(),
   body('title').trim().notEmpty().isLength({ max: 300 }),
@@ -129,5 +147,6 @@ router.get('/reports/project-progress', authenticate, reptC.projectProgress);
 router.get('/reports/time-tracking',    authenticate, reptC.timeTracking);
 router.get('/reports/leaderboard',      authenticate, reptC.leaderboard);
 router.get('/reports/overdue',          authenticate, reptC.overdue);
+router.get('/reports/points-journey',   authenticate, reptC.pointsJourney);
 
 module.exports = router;

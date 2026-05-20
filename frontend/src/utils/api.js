@@ -78,6 +78,7 @@ export const projectAPI = {
 };
 
 export const ticketAPI = {
+  listAll:       (params)            => api.get('/tickets', { params }),
   list:          (projectId, params) => api.get(`/projects/${projectId}/tickets`, { params }),
   get:           (id)                => api.get(`/tickets/${id}`),
   create:        (data)              => api.post('/tickets', data),
@@ -110,6 +111,16 @@ export const reportAPI = {
   timeTracking:    (params) => api.get('/reports/time-tracking', { params }),
   leaderboard:     (params) => api.get('/reports/leaderboard', { params }),
   overdue:         (params) => api.get('/reports/overdue', { params }),
+  pointsJourney:   (params) => api.get('/reports/points-journey', { params }),
+};
+
+export const roleAPI = {
+  list:       ()          => api.get('/roles'),
+  create:     (data)      => api.post('/roles', data),
+  update:     (id, data)  => api.put(`/roles/${id}`, data),
+  delete:     (id)        => api.delete(`/roles/${id}`),
+  assign:     (data)      => api.post('/roles/assign', data),
+  setModules: (id, mods)  => api.put(`/roles/${id}/modules`, { modules: mods }),
 };
 
 export const userAPI = {

@@ -18,8 +18,6 @@ const userPerformance = async (req, res, next) => {
     const { start_date, end_date, project_id, user_id } = req.query;
     let where = ['1=1'], params = [];
 
-    if (start_date)  { where.push('pl.created_at>=?'); params.push(start_date); }
-    if (end_date)    { where.push('pl.created_at<=?'); params.push(end_date); }
     if (project_id)  { where.push('t.project_id=?');   params.push(project_id); }
 
     const scope = callerScope(req.user);
@@ -28,6 +26,17 @@ const userPerformance = async (req, res, next) => {
     } else if (user_id) {
       where.push('u.id=?'); params.push(user_id);
     }
+
+    // Date params go into the JOIN ON clause so users with no points in the range
+    // still appear (avoids silently converting LEFT JOIN to INNER JOIN via WHERE)
+    const joinDateClause = [
+      start_date ? 'AND pl.created_at>=?' : '',
+      end_date   ? 'AND DATE(pl.created_at)<=?' : '',
+    ].filter(Boolean).join(' ');
+    const joinDateParams = [
+      ...(start_date ? [start_date] : []),
+      ...(end_date   ? [end_date]   : []),
+    ];
 
     const wc = where.join(' AND ');
     const [rows] = await db.query(`
@@ -40,12 +49,12 @@ const userPerformance = async (req, res, next) => {
         COUNT(CASE WHEN pl.event_type='bug_critical' THEN 1 END)       AS bugs_critical,
         COALESCE((SELECT SUM(tl.hours) FROM time_logs tl WHERE tl.user_id=u.id),0) AS total_hours
       FROM users u
-      LEFT JOIN ticket_points_log pl ON pl.user_id = u.id
+      LEFT JOIN ticket_points_log pl ON pl.user_id = u.id ${joinDateClause}
       LEFT JOIN tickets t ON t.id = pl.ticket_id
       WHERE ${wc}
       GROUP BY u.id, u.name, u.email, u.role, u.avatar_url
       ORDER BY net_score DESC
-    `, params);
+    `, [...joinDateParams, ...params]);
 
     res.json({ success:true, data:rows });
   } catch (err) { next(err); }
@@ -57,9 +66,9 @@ const bugAnalytics = async (req, res, next) => {
     const { start_date, end_date, project_id } = req.query;
     let where = ['t.is_bug=1'], params = [];
 
-    if (start_date) { where.push('t.created_at>=?'); params.push(start_date); }
-    if (end_date)   { where.push('t.created_at<=?'); params.push(end_date); }
-    if (project_id) { where.push('t.project_id=?');  params.push(project_id); }
+    if (start_date) { where.push('t.created_at>=?');          params.push(start_date); }
+    if (end_date)   { where.push('DATE(t.created_at)<=?');    params.push(end_date); }
+    if (project_id) { where.push('t.project_id=?');           params.push(project_id); }
 
     const scope = callerScope(req.user);
     if (scope === 'own') {
@@ -193,7 +202,7 @@ const leaderboard = async (req, res, next) => {
       FROM users u
       LEFT JOIN ticket_points_log pl ON pl.user_id=u.id ${dateFilter}
       LEFT JOIN tickets t ON t.id=pl.ticket_id ${projectFilter}
-      WHERE u.is_active=1
+      WHERE u.is_active=1 AND u.role != 'super_admin'
       GROUP BY u.id, u.name, u.avatar_url, u.role ORDER BY net_score DESC
       LIMIT 50
     `);
@@ -280,4 +289,45 @@ const userTimeline = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { userPerformance, bugAnalytics, timeTracking, leaderboard, projectProgress, userTimeline, overdue };
+// ── GET /api/reports/points-journey ─────────────────────────
+// Returns every individual point event for a user, with full ticket context.
+// Admin/SA can pass ?user_id=N; own-scoped users always see only themselves.
+const pointsJourney = async (req, res, next) => {
+  try {
+    const { user_id, start_date, end_date } = req.query;
+    const scope = callerScope(req.user);
+
+    let where = ['1=1'], params = [];
+
+    if (scope === 'own') {
+      where.push('pl.user_id = ?');
+      params.push(req.user.id);
+    } else if (user_id) {
+      where.push('pl.user_id = ?');
+      params.push(user_id);
+    }
+
+    if (start_date) { where.push('pl.created_at >= ?');       params.push(start_date); }
+    if (end_date)   { where.push('DATE(pl.created_at) <= ?'); params.push(end_date); }
+
+    const wc = where.join(' AND ');
+    const [events] = await db.query(`
+      SELECT
+        pl.id, pl.event_type, pl.delta, pl.bug_severity, pl.fix_minutes, pl.created_at,
+        t.id AS ticket_id, t.ticket_code, t.title AS ticket_title,
+        t.due_date, t.closed_at, t.priority,
+        p.id AS project_id, p.name AS project_name,
+        u.id AS user_id, u.name AS user_name
+      FROM ticket_points_log pl
+      JOIN tickets  t ON t.id  = pl.ticket_id
+      JOIN projects p ON p.id  = t.project_id
+      JOIN users    u ON u.id  = pl.user_id
+      WHERE ${wc}
+      ORDER BY pl.created_at DESC
+    `, params);
+
+    res.json({ success: true, data: events });
+  } catch (err) { next(err); }
+};
+
+module.exports = { userPerformance, bugAnalytics, timeTracking, leaderboard, projectProgress, userTimeline, overdue, pointsJourney };
