@@ -28,6 +28,8 @@ export default function TicketDetail() {
   const [editingAssignee, setEditingAssignee] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState('');
   const [bugSeverity, setBugSeverity] = useState('minor');
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descDraft, setDescDraft] = useState('');
 
   const { data: ticket, isLoading } = useQuery(
     ['ticket', id],
@@ -46,7 +48,10 @@ export default function TicketDetail() {
     { staleTime: 5 * 60 * 1000 }
   );
 
-  const canManage = (ROLE_RANK[user?.role] || 0) >= ROLE_RANK['team_lead'];
+  const userRank       = ROLE_RANK[user?.role] || 0;
+  const canManage      = userRank >= ROLE_RANK['team_lead'];
+  const canChangeStatus = canManage || ticket?.assignee_id === user?.id;
+  const canEditTicket   = canManage || ticket?.assignee_id === user?.id;
 
   // ── Status change ────────────────────────────────────────────
   const statusMut = useMutation(
@@ -75,6 +80,15 @@ export default function TicketDetail() {
     (body) => commentAPI.create(id, { body }),
     {
       onSuccess: () => { qc.invalidateQueries(['comments', id]); setComment(''); toast.success('Comment added'); },
+      onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
+    }
+  );
+
+  // ── Description edit ─────────────────────────────────────────
+  const descMut = useMutation(
+    (description) => ticketAPI.update(id, { description }),
+    {
+      onSuccess: () => { qc.invalidateQueries(['ticket', id]); setEditingDesc(false); toast.success('Description updated'); },
       onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
     }
   );
@@ -125,7 +139,41 @@ export default function TicketDetail() {
               )}
             </div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-900">{ticket.title}</h1>
-            {ticket.description && <p className="text-sm text-slate-500 mt-2">{ticket.description}</p>}
+
+            {/* Description — inline edit for assignee / team_lead+ */}
+            {editingDesc ? (
+              <div className="mt-2 space-y-2">
+                <textarea
+                  value={descDraft}
+                  onChange={e => setDescDraft(e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+                <div className="flex gap-2">
+                  <button onClick={() => descMut.mutate(descDraft)} disabled={descMut.isLoading}
+                    className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors">
+                    {descMut.isLoading ? 'Saving…' : 'Save'}
+                  </button>
+                  <button onClick={() => setEditingDesc(false)}
+                    className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 group flex items-start gap-2">
+                <p className="text-sm text-slate-500 flex-1">
+                  {ticket.description || <span className="italic text-slate-300">No description</span>}
+                </p>
+                {canEditTicket && (
+                  <button
+                    onClick={() => { setDescDraft(ticket.description || ''); setEditingDesc(true); }}
+                    className="text-xs text-blue-400 hover:text-blue-600 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity leading-none mt-0.5">
+                    ✎
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-1.5 flex-shrink-0">
             <span className={`text-xs px-2.5 py-1 rounded-full text-center ${PRIORITY_COLOR[ticket.priority] || ''}`}>
@@ -197,8 +245,8 @@ export default function TicketDetail() {
           </div>
         </div>
 
-        {/* Status transition buttons */}
-        {nextStatuses.length > 0 && (
+        {/* Status transition buttons — only assignee or team_lead+ */}
+        {canChangeStatus && nextStatuses.length > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-50 flex flex-wrap items-center gap-2">
             <p className="text-xs text-slate-400">Move to:</p>
             {nextStatuses.map(s => (
@@ -307,7 +355,7 @@ export default function TicketDetail() {
               {comments?.map(c => (
                 <div key={c.id} className="px-4 sm:px-5 py-3">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold text-slate-700">{c.author_name}</span>
+                    <span className="text-xs font-semibold text-slate-700">{c.user_name}</span>
                     <span className="text-xs text-slate-400">{new Date(c.created_at).toLocaleString()}</span>
                   </div>
                   <p className="text-sm text-slate-600">{c.body}</p>

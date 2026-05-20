@@ -4,12 +4,21 @@ import { useQuery } from 'react-query';
 import { reportAPI, projectAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
-const StatCard = ({ label, value, color = 'text-slate-900' }) => (
-  <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
-    <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">{label}</p>
-    <p className={`text-2xl sm:text-3xl font-bold mt-1 truncate ${color}`}>{value}</p>
-  </div>
-);
+const StatCard = ({ label, value, color = 'text-slate-900', to }) => {
+  const inner = (
+    <>
+      <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">{label}</p>
+      <p className={`text-2xl sm:text-3xl font-bold mt-1 truncate ${color}`}>{value}</p>
+    </>
+  );
+  return to ? (
+    <Link to={to} className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm block hover:border-blue-200 transition-colors">
+      {inner}
+    </Link>
+  ) : (
+    <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">{inner}</div>
+  );
+};
 
 const STATUS_COLOR = {
   not_started: 'bg-gray-100 text-gray-700',
@@ -21,9 +30,12 @@ const STATUS_COLOR = {
 export default function DashboardPage() {
   const { user } = useAuth();
 
-  const { data: overdue }     = useQuery('overdue',      () => reportAPI.overdue().then(r => r.data.data));
-  const { data: projects }    = useQuery('projects-dash', () => projectAPI.list({ limit: 5 }).then(r => r.data.data));
+  const { data: overdueRes }  = useQuery('overdue',      () => reportAPI.overdue().then(r => r.data));
+  const { data: projRes }     = useQuery('projects-dash', () => projectAPI.list({ limit: 5 }).then(r => r.data));
   const { data: leaderboard } = useQuery('lb-dash',      () => reportAPI.leaderboard({ limit: 5 }).then(r => r.data.data));
+
+  const overdue  = overdueRes?.data;
+  const projects = projRes?.data;
 
   return (
     <div className="p-3 sm:p-4 lg:p-6 max-w-6xl mx-auto">
@@ -40,12 +52,14 @@ export default function DashboardPage() {
           label="Your Points"
           value={`${(user?.total_points ?? 0) >= 0 ? '+' : ''}${user?.total_points ?? 0}`}
           color={(user?.total_points ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}
+          to="/reports"
         />
-        <StatCard label="Projects" value={projects?.length ?? '—'} />
+        <StatCard label="Projects" value={projRes?.meta?.total ?? '—'} to="/projects" />
         <StatCard
           label="Overdue"
           value={overdue?.length ?? '—'}
           color={overdue?.length ? 'text-red-600' : 'text-slate-900'}
+          to="/reports"
         />
         <StatCard label="Role" value={user?.role?.replace(/_/g, ' ') ?? '—'} />
       </div>

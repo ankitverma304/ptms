@@ -14,7 +14,7 @@ export default function ProjectDetail() {
   const qc = useQueryClient();
   const [tab, setTab] = useState('tickets');
   const [showTicketForm, setShowTicketForm] = useState(false);
-  const [ticketForm, setTicketForm] = useState({ title: '', priority: 'medium', assignee_id: '', due_date: '', estimated_hrs: '' });
+  const [ticketForm, setTicketForm] = useState({ title: '', description: '', priority: 'medium', assignee_id: '', due_date: '', estimated_hrs: '' });
 
   const { data: proj, isLoading } = useQuery(
     ['project', id],
@@ -23,7 +23,8 @@ export default function ProjectDetail() {
 
   const { data: tickets } = useQuery(
     ['tickets', id],
-    () => ticketAPI.list(id).then(r => r.data.data)
+    () => ticketAPI.list(id).then(r => r.data.data),
+    { refetchOnMount: 'always' }
   );
 
   const { data: allUsers = [] } = useQuery(
@@ -43,7 +44,7 @@ export default function ProjectDetail() {
       onSuccess: () => {
         qc.invalidateQueries(['tickets', id]);
         setShowTicketForm(false);
-        setTicketForm({ title: '', priority: 'medium', assignee_id: '', due_date: '', estimated_hrs: '' });
+        setTicketForm({ title: '', description: '', priority: 'medium', assignee_id: '', due_date: '', estimated_hrs: '' });
         toast.success('Ticket created');
       },
       onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
@@ -78,10 +79,11 @@ export default function ProjectDetail() {
           { label: 'Done', value: proj.stats?.done_count },
           { label: 'Bugs', value: proj.stats?.bug_count },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 text-center shadow-sm">
+          <button key={s.label} onClick={() => setTab('tickets')}
+            className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 text-center shadow-sm hover:border-blue-200 transition-colors w-full">
             <p className="text-2xl sm:text-3xl font-bold text-slate-900">{s.value ?? 0}</p>
             <p className="text-xs text-slate-500 mt-1">{s.label}</p>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -113,6 +115,13 @@ export default function ProjectDetail() {
                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Ticket title" />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
+                      <textarea value={ticketForm.description} onChange={e => setTicketForm(f => ({ ...f, description: e.target.value }))}
+                        rows={2}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        placeholder="Optional — describe what needs to be done" />
+                    </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-600 mb-1">Priority</label>
                       <select value={ticketForm.priority} onChange={e => setTicketForm(f => ({ ...f, priority: e.target.value }))}
@@ -134,6 +143,13 @@ export default function ProjectDetail() {
                       <label className="block text-xs font-medium text-slate-600 mb-1">Due date</label>
                       <input type="date" value={ticketForm.due_date} onChange={e => setTicketForm(f => ({ ...f, due_date: e.target.value }))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Estimated hours</label>
+                      <input type="number" min="0.25" step="0.25" value={ticketForm.estimated_hrs}
+                        onChange={e => setTicketForm(f => ({ ...f, estimated_hrs: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. 4" />
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">

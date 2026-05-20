@@ -4,23 +4,13 @@ const PointsService = require('../services/pointsService');
 const RANK = { super_admin:6, admin:5, project_manager:4, team_lead:3, developer:2, qa:1 };
 
 // Returns the SQL snippet + params needed to restrict results to the caller's scope.
-// scope: 'own' → dev/qa sees only their own data
-//        'team' → team_lead sees all users in their projects
-//        'all'  → pm+ sees everything
+// scope: 'own' → everyone except admin+ sees only their own data
+//        'all' → super_admin / admin see everything
 function callerScope(user) {
   const rank = RANK[user.role] || 0;
-  if (rank < RANK.team_lead) return 'own';
-  if (rank === RANK.team_lead) return 'team';
-  return 'all';
+  if (rank >= RANK.admin) return 'all';
+  return 'own';
 }
-
-// Subquery: all user_ids who share a project with the caller (for team_lead scope)
-const TEAM_SUBQUERY = `u.id IN (
-  SELECT DISTINCT pm2.user_id FROM project_members pm2
-  WHERE pm2.project_id IN (
-    SELECT pm1.project_id FROM project_members pm1 WHERE pm1.user_id=?
-  )
-)`;
 
 // ── GET /api/reports/user-performance ───────────────────────
 const userPerformance = async (req, res, next) => {
@@ -35,8 +25,6 @@ const userPerformance = async (req, res, next) => {
     const scope = callerScope(req.user);
     if (scope === 'own') {
       where.push('u.id=?'); params.push(req.user.id);
-    } else if (scope === 'team') {
-      where.push(TEAM_SUBQUERY); params.push(req.user.id);
     } else if (user_id) {
       where.push('u.id=?'); params.push(user_id);
     }
@@ -76,9 +64,6 @@ const bugAnalytics = async (req, res, next) => {
     const scope = callerScope(req.user);
     if (scope === 'own') {
       where.push('(t.assignee_id=? OR t.reporter_id=?)'); params.push(req.user.id, req.user.id);
-    } else if (scope === 'team') {
-      where.push('t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id=?)');
-      params.push(req.user.id);
     }
 
     const wc = where.join(' AND ');
@@ -87,24 +72,25 @@ const bugAnalytics = async (req, res, next) => {
     const [[summary]] = await db.query(`
       SELECT
         COUNT(*) AS total_bugs,
-        SUM(bug_severity='minor')    AS minor,
-        SUM(bug_severity='major')    AS major,
-        SUM(bug_severity='critical') AS critical,
-        SUM(status='closed')         AS resolved_bugs,
+        SUM(bug_severity='minor')              AS minor,
+        SUM(bug_severity='major')              AS major,
+        SUM(bug_severity='critical')           AS critical,
+        SUM(status IN ('resolved','closed'))   AS resolved_bugs,
         SUM(status NOT IN ('resolved','closed')) AS open_bugs
       FROM tickets t WHERE ${wc}
     `, params);
 
-    // Bugs per week (last 12 weeks)
+    // Bugs per week — respects role scope + date filters; defaults to last 12 weeks if no date given
+    const trendDateFilter = (!start_date && !end_date) ? "AND t.created_at>=DATE_SUB(NOW(), INTERVAL 12 WEEK)" : '';
     const [trend] = await db.query(`
-      SELECT YEAR(created_at) AS yr, WEEK(created_at,1) AS wk,
+      SELECT YEAR(t.created_at) AS yr, WEEK(t.created_at,1) AS wk,
              COUNT(*) AS count,
-             SUM(bug_severity='minor')    AS minor,
-             SUM(bug_severity='major')    AS major,
-             SUM(bug_severity='critical') AS critical
-      FROM tickets WHERE is_bug=1 AND created_at>=DATE_SUB(NOW(), INTERVAL 12 WEEK)
+             SUM(t.bug_severity='minor')    AS minor,
+             SUM(t.bug_severity='major')    AS major,
+             SUM(t.bug_severity='critical') AS critical
+      FROM tickets t WHERE ${wc} ${trendDateFilter}
       GROUP BY yr, wk ORDER BY yr, wk
-    `);
+    `, params);
 
     // Top bug reporters
     const [topReporters] = await db.query(`
@@ -142,9 +128,6 @@ const timeTracking = async (req, res, next) => {
     const scope = callerScope(req.user);
     if (scope === 'own') {
       where.push('tl.user_id=?'); params.push(req.user.id);
-    } else if (scope === 'team') {
-      where.push('t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id=?)');
-      params.push(req.user.id);
     } else if (user_id) {
       where.push('tl.user_id=?'); params.push(user_id);
     }
@@ -163,25 +146,27 @@ const timeTracking = async (req, res, next) => {
       WHERE ${wc} GROUP BY u.id, u.name, u.avatar_url ORDER BY total_hours DESC
     `, params);
 
-    // Per project summary
+    // Per project summary — use correlated subquery for estimated_hours to avoid fan-out
     const [byProject] = await db.query(`
       SELECT p.id, p.name, p.code,
-             ROUND(SUM(tl.hours),2)            AS logged_hours,
-             ROUND(SUM(t.estimated_hrs),2)     AS estimated_hours
+             ROUND(SUM(tl.hours),2) AS logged_hours,
+             (SELECT ROUND(COALESCE(SUM(t2.estimated_hrs),0),2)
+              FROM tickets t2 WHERE t2.project_id=p.id) AS estimated_hours
       FROM time_logs tl
       JOIN tickets t   ON t.id  = tl.ticket_id
       JOIN projects p  ON p.id  = t.project_id
       WHERE ${wc} GROUP BY p.id, p.name, p.code ORDER BY logged_hours DESC
     `, params);
 
-    // Daily breakdown (last 30 days)
+    // Daily breakdown — respects role scope + date filters; defaults to last 30 days if no date given
+    const dailyDateFilter = (!start_date && !end_date) ? 'AND tl.work_date>=DATE_SUB(NOW(), INTERVAL 30 DAY)' : '';
     const [daily] = await db.query(`
       SELECT tl.work_date, ROUND(SUM(tl.hours),2) AS hours,
              COUNT(DISTINCT tl.user_id) AS active_users
       FROM time_logs tl JOIN tickets t ON t.id=tl.ticket_id
-      WHERE tl.work_date>=DATE_SUB(NOW(), INTERVAL 30 DAY)
+      WHERE ${wc} ${dailyDateFilter}
       GROUP BY tl.work_date ORDER BY tl.work_date
-    `);
+    `, params);
 
     res.json({ success:true, data:{ byUser, byProject, daily } });
   } catch (err) { next(err); }
@@ -254,9 +239,6 @@ const overdue = async (req, res, next) => {
     const scope = callerScope(req.user);
     if (scope === 'own') {
       extra += ' AND t.assignee_id=?'; params.push(req.user.id);
-    } else if (scope === 'team') {
-      extra += ' AND t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id=?)';
-      params.push(req.user.id);
     }
 
     const [rows] = await db.query(`

@@ -1,16 +1,23 @@
 const db             = require('../config/db');
 const PointsService  = require('../services/pointsService');
 const NotifyService  = require('../services/notifyService');
+const { ROLE_RANK }  = require('../middleware/auth');
 
-// ── GET /api/tickets ─────────────────────────────────────────
+// ── GET /api/projects/:projectId/tickets ──────────────────────
 const list = async (req, res, next) => {
   try {
-    const { project_id, status, priority, assignee_id, is_bug,
+    const project_id = req.params.projectId || req.query.project_id;
+    // project_id is REQUIRED — never fall through to returning all tickets
+    const pid = parseInt(project_id, 10);
+    if (!pid || isNaN(pid)) {
+      return res.status(400).json({ success: false, message: 'project_id is required' });
+    }
+
+    const { status, priority, assignee_id, is_bug,
             search, page=1, limit=20 } = req.query;
     const offset = (page-1)*limit;
-    let where=[], params=[];
+    let where=['t.project_id=?'], params=[pid];
 
-    if (project_id)  { where.push('t.project_id=?');  params.push(project_id); }
     if (status)      { where.push('t.status=?');       params.push(status); }
     if (priority)    { where.push('t.priority=?');     params.push(priority); }
     if (assignee_id) { where.push('t.assignee_id=?');  params.push(assignee_id); }
@@ -103,6 +110,15 @@ const getOne = async (req, res, next) => {
       WHERE t.id=?`, [req.params.id]);
     if (!ticket) return res.status(404).json({ success:false, message:'Ticket not found' });
 
+    // Verify caller is a project member (PM+ bypass)
+    if ((ROLE_RANK[req.user.role] || 0) < ROLE_RANK['project_manager']) {
+      const [mem] = await db.query(
+        'SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',
+        [ticket.project_id, req.user.id]
+      );
+      if (!mem.length) return res.status(403).json({ success:false, message:'Not a project member' });
+    }
+
     const [tags]      = await db.query(`SELECT t.id,t.name,t.color FROM tags t JOIN ticket_tags tt ON tt.tag_id=t.id WHERE tt.ticket_id=?`, [req.params.id]);
     const [checklist] = await db.query('SELECT * FROM ticket_checklist WHERE ticket_id=? ORDER BY sort_order', [req.params.id]);
     const [timeLogs]  = await db.query(`SELECT tl.*,u.name AS user_name FROM time_logs tl JOIN users u ON u.id=tl.user_id WHERE tl.ticket_id=? ORDER BY tl.work_date DESC`, [req.params.id]);
@@ -121,6 +137,12 @@ const changeStatus = async (req, res, next) => {
     const { status } = req.body;
     const [[ticket]]  = await conn.query('SELECT * FROM tickets WHERE id=?', [req.params.id]);
     if (!ticket) return res.status(404).json({ success:false, message:'Ticket not found' });
+
+    // Only assignee or team_lead+ can change status
+    const userRank = ROLE_RANK[req.user.role] || 0;
+    if (userRank < ROLE_RANK['team_lead'] && ticket.assignee_id !== req.user.id) {
+      return res.status(403).json({ success:false, message:'Only the assignee or a team lead can change ticket status' });
+    }
 
     const validTransitions = {
       open:          ['in_progress'],
@@ -172,6 +194,12 @@ const update = async (req, res, next) => {
     const [[ticket]] = await conn.query('SELECT * FROM tickets WHERE id=?', [id]);
     if (!ticket) return res.status(404).json({ success:false, message:'Ticket not found' });
 
+    // Only assignee or team_lead+ can update a ticket
+    const userRankUpd = ROLE_RANK[req.user.role] || 0;
+    if (userRankUpd < ROLE_RANK['team_lead'] && ticket.assignee_id !== req.user.id) {
+      return res.status(403).json({ success:false, message:'Only the assignee or a team lead can update this ticket' });
+    }
+
     // Only SA/Admin/PM/TL/QA may flag a ticket as a bug
     if (req.body.is_bug) {
       const BUG_ROLES = ['super_admin','admin','project_manager','team_lead','qa'];
@@ -200,16 +228,25 @@ const update = async (req, res, next) => {
 
     await conn.commit();
 
-    // If assignee changed, notify new assignee and ensure they are a watcher
+    // If assignee changed: notify both old and new assignee, add new as watcher
     const newAssigneeId = req.body.assignee_id !== undefined ? req.body.assignee_id : ticket.assignee_id;
     if ('assignee_id' in req.body && req.body.assignee_id != ticket.assignee_id) {
+      // Notify old assignee that ticket was transferred away
+      if (ticket.assignee_id && ticket.assignee_id !== req.user.id) {
+        await NotifyService.send(req.app.get('io'), {
+          user_id: ticket.assignee_id,
+          type: 'unassigned',
+          title: `Ticket ${ticket.ticket_code} reassigned`,
+          message: `${ticket.title} has been transferred to another member`,
+          entity_type: 'ticket',
+          entity_id: +id,
+        });
+      }
       if (newAssigneeId) {
-        // Add as watcher
         await db.query(
           'INSERT IGNORE INTO ticket_watchers (ticket_id, user_id) VALUES (?, ?)',
           [id, newAssigneeId]
         );
-        // Notify new assignee
         await NotifyService.send(req.app.get('io'), {
           user_id: newAssigneeId,
           type: 'assigned',

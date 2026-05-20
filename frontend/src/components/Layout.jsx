@@ -93,7 +93,7 @@ export default function Layout() {
   };
 
   // Filter admin-only nav items
-  const visibleNav = NAV.filter(item => !item.adminOnly || hasRole('super_admin', 'admin'));
+  const visibleNav = NAV.filter(item => !item.adminOnly || hasRole('super_admin'));
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">

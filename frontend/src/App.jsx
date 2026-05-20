@@ -31,7 +31,7 @@ function AdminRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (!['super_admin','admin'].includes(user.role)) return <Navigate to="/" replace />;
+  if (user.role !== 'super_admin') return <Navigate to="/" replace />;
   return children;
 }
 

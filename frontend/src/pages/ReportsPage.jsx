@@ -25,13 +25,13 @@ export default function ReportsPage() {
     { enabled: tab === 'performance' }
   );
 
-  const { data: bugs } = useQuery(
+  const { data: bugs, isLoading: bugsLoading, isError: bugsError } = useQuery(
     ['report-bugs', startDate, endDate],
     () => reportAPI.bugAnalytics({ start_date: startDate, end_date: endDate }).then(r => r.data.data),
     { enabled: tab === 'bugs' }
   );
 
-  const { data: time } = useQuery(
+  const { data: time, isLoading: timeLoading, isError: timeError } = useQuery(
     ['report-time', startDate, endDate],
     () => reportAPI.timeTracking({ start_date: startDate, end_date: endDate }).then(r => r.data.data),
     { enabled: tab === 'time' }
@@ -119,86 +119,188 @@ export default function ReportsPage() {
       )}
 
       {/* Bug analytics */}
-      {tab === 'bugs' && bugs && (
-        <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-            {[
-              { label: 'Total', value: bugs.summary?.total_bugs, color: 'text-slate-900' },
-              { label: 'Minor', value: bugs.summary?.minor, color: 'text-yellow-600' },
-              { label: 'Major', value: bugs.summary?.major, color: 'text-orange-600' },
-              { label: 'Critical', value: bugs.summary?.critical, color: 'text-red-700' },
-              { label: 'Resolved', value: bugs.summary?.resolved_bugs, color: 'text-green-600' },
-              { label: 'Open', value: bugs.summary?.open_bugs, color: 'text-red-500' },
-            ].map(s => (
-              <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 text-center shadow-sm">
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value ?? 0}</p>
-                <p className="text-xs text-slate-500 mt-1">{s.label}</p>
-              </div>
-            ))}
-          </div>
+      {tab === 'bugs' && (
+        bugsLoading
+          ? <p className="text-sm text-slate-400 text-center py-12">Loading…</p>
+          : bugsError
+            ? <p className="text-sm text-red-500 text-center py-12">Failed to load bug analytics. Please try again.</p>
+          : !bugs
+            ? null
+            : <div className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+                  {[
+                    { label: 'Total',    value: bugs.summary?.total_bugs,    color: 'text-slate-900' },
+                    { label: 'Minor',    value: bugs.summary?.minor,         color: 'text-yellow-600' },
+                    { label: 'Major',    value: bugs.summary?.major,         color: 'text-orange-600' },
+                    { label: 'Critical', value: bugs.summary?.critical,      color: 'text-red-700' },
+                    { label: 'Resolved', value: bugs.summary?.resolved_bugs, color: 'text-green-600' },
+                    { label: 'Open',     value: bugs.summary?.open_bugs,     color: 'text-red-500' },
+                  ].map(s => (
+                    <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 text-center shadow-sm">
+                      <p className={`text-2xl font-bold ${s.color}`}>{s.value ?? 0}</p>
+                      <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
 
-          {bugs.trend?.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
-              <p className="text-sm font-semibold text-slate-700 mb-4">Bug trend (last 12 weeks)</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={bugs.trend}>
-                  <XAxis dataKey="wk" tick={{ fontSize: 11 }} tickFormatter={v => `W${v}`} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#EF4444" strokeWidth={2} dot={false} name="Bugs" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
+                {!bugs.summary?.total_bugs && (
+                  <p className="text-sm text-slate-400 text-center py-8">No bug tickets in this period</p>
+                )}
+
+                {bugs.trend?.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
+                    <p className="text-sm font-semibold text-slate-700 mb-4">Bug trend</p>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <LineChart data={bugs.trend}>
+                        <XAxis dataKey="wk" tick={{ fontSize: 11 }} tickFormatter={v => `W${v}`} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="count" stroke="#EF4444" strokeWidth={2} dot={false} name="Bugs" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {bugs.topReporters?.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                      <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-slate-700">Top Bug Reporters</p>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <th className="text-left px-4 sm:px-5 py-2.5 text-xs font-semibold text-slate-500">User</th>
+                            <th className="text-right px-4 sm:px-5 py-2.5 text-xs font-semibold text-slate-500">Bugs</th>
+                            <th className="text-right px-4 sm:px-5 py-2.5 text-xs font-semibold text-slate-500">Critical</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {bugs.topReporters.map(u => (
+                            <tr key={u.id} className="hover:bg-gray-50">
+                              <td className="px-4 sm:px-5 py-2.5 font-medium text-slate-800">{u.name}</td>
+                              <td className="px-4 sm:px-5 py-2.5 text-right text-slate-600">{u.bug_count}</td>
+                              <td className="px-4 sm:px-5 py-2.5 text-right text-red-600">{u.critical_count ?? 0}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {bugs.topAssignees?.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                      <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-slate-700">Most Bugs Assigned</p>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <th className="text-left px-4 sm:px-5 py-2.5 text-xs font-semibold text-slate-500">User</th>
+                            <th className="text-right px-4 sm:px-5 py-2.5 text-xs font-semibold text-slate-500">Bugs</th>
+                            <th className="text-right px-4 sm:px-5 py-2.5 text-xs font-semibold text-slate-500">Pts lost</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {bugs.topAssignees.map(u => (
+                            <tr key={u.id} className="hover:bg-gray-50">
+                              <td className="px-4 sm:px-5 py-2.5 font-medium text-slate-800">{u.name}</td>
+                              <td className="px-4 sm:px-5 py-2.5 text-right text-slate-600">{u.bug_count}</td>
+                              <td className="px-4 sm:px-5 py-2.5 text-right text-red-600">{u.points_lost ?? 0}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
       )}
 
       {/* Time tracking */}
-      {tab === 'time' && time && (
-        <div className="space-y-4 sm:space-y-6">
-          {time.daily?.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
-              <p className="text-sm font-semibold text-slate-700 mb-4">Hours logged per day</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={time.daily}>
-                  <XAxis dataKey="work_date" tick={{ fontSize: 11 }} tickFormatter={d => format(new Date(d + 'T00:00'), 'MMM d')} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={v => [`${v} hrs`, 'Hours']} />
-                  <Bar dataKey="hours" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+      {tab === 'time' && (
+        timeLoading
+          ? <p className="text-sm text-slate-400 text-center py-12">Loading…</p>
+          : timeError
+            ? <p className="text-sm text-red-500 text-center py-12">Failed to load time tracking data. Please try again.</p>
+          : !time
+            ? null
+            : <div className="space-y-4 sm:space-y-6">
+                {time.daily?.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
+                    <p className="text-sm font-semibold text-slate-700 mb-4">Hours logged per day</p>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={time.daily}>
+                        <XAxis dataKey="work_date" tick={{ fontSize: 11 }} tickFormatter={d => format(new Date(d + 'T00:00'), 'MMM d')} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={v => [`${v} hrs`, 'Hours']} />
+                        <Bar dataKey="hours" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
 
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
-            <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
-              <p className="text-sm font-semibold text-slate-700">By User</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[400px]">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">User</th>
-                    <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Total hrs</th>
-                    <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Billable</th>
-                    <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Tickets</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {time.byUser?.map(u => (
-                    <tr key={u.id} className="hover:bg-gray-50">
-                      <td className="px-4 sm:px-5 py-3 font-medium text-slate-800">{u.name}</td>
-                      <td className="px-4 sm:px-5 py-3 text-right text-blue-600 font-semibold">{u.total_hours}</td>
-                      <td className="px-4 sm:px-5 py-3 text-right text-green-600">{u.billable_hours}</td>
-                      <td className="px-4 sm:px-5 py-3 text-right text-slate-500">{u.tickets_worked}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {!time.byUser?.length && <p className="px-5 py-8 text-sm text-slate-400 text-center">No data for this period</p>}
-          </div>
-        </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-slate-700">By User</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[400px]">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <th className="text-left px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">User</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Total hrs</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Billable</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Tickets</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {time.byUser?.map(u => (
+                            <tr key={u.id} className="hover:bg-gray-50">
+                              <td className="px-4 sm:px-5 py-3 font-medium text-slate-800">{u.name}</td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-blue-600 font-semibold">{u.total_hours}</td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-green-600">{u.billable_hours}</td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-slate-500">{u.tickets_worked}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {!time.byUser?.length && <p className="px-5 py-8 text-sm text-slate-400 text-center">No data for this period</p>}
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-slate-700">By Project</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[360px]">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <th className="text-left px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Project</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Logged hrs</th>
+                            <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500">Est. hrs</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {time.byProject?.map(p => (
+                            <tr key={p.id} className="hover:bg-gray-50">
+                              <td className="px-4 sm:px-5 py-3">
+                                <p className="font-medium text-slate-800 truncate">{p.name}</p>
+                                <p className="text-xs text-slate-400">{p.code}</p>
+                              </td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-blue-600 font-semibold">{p.logged_hours}</td>
+                              <td className="px-4 sm:px-5 py-3 text-right text-slate-500">{p.estimated_hours ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {!time.byProject?.length && <p className="px-5 py-8 text-sm text-slate-400 text-center">No data for this period</p>}
+                  </div>
+                </div>
+              </div>
       )}
     </div>
   );

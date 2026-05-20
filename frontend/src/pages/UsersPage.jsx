@@ -297,7 +297,8 @@ function EditUserModal({ user, onClose, onSuccess }) {
 }
 
 export default function UsersPage() {
-  const { isAdmin } = useAuth();
+  const { hasRole } = useAuth();
+  const isSuperAdmin = () => hasRole('super_admin');
   const qc = useQueryClient();
 
   const [search, setSearch]     = useState('');
@@ -327,7 +328,7 @@ export default function UsersPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Users</h1>
           <p className="text-sm text-slate-400 mt-0.5">{data?.length ?? 0} total</p>
         </div>
-        {isAdmin() && (
+        {isSuperAdmin() && (
           <button
             onClick={() => setShowCreate(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors flex-shrink-0"
@@ -381,7 +382,7 @@ export default function UsersPage() {
                 <span className={`text-sm font-bold ${(u.total_points ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {(u.total_points ?? 0) >= 0 ? '+' : ''}{u.total_points ?? 0} pts
                 </span>
-                {isAdmin() && (
+                {isSuperAdmin() && (
                   <button
                     onClick={() => setEditUser(u)}
                     className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
@@ -408,7 +409,7 @@ export default function UsersPage() {
                 <th className="text-left px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Role</th>
                 <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Points</th>
                 <th className="text-right px-4 sm:px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
-                {isAdmin() && <th className="px-4 sm:px-5 py-3" />}
+                {isSuperAdmin() && <th className="px-4 sm:px-5 py-3" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -438,7 +439,7 @@ export default function UsersPage() {
                       {u.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  {isAdmin() && (
+                  {isSuperAdmin() && (
                     <td className="px-4 sm:px-5 py-3 text-right">
                       <button
                         onClick={() => setEditUser(u)}
